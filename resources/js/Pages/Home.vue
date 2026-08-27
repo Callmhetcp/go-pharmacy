@@ -3,8 +3,8 @@ import CustomerLayout from '@/Layouts/CustomerLayout.vue';
 
 import AdvertisementBanner from '@/Components/Customer/Home/AdvertisementBanner.vue';
 import Herosection from '@/Components/Customer/Home/Herosection.vue';
-import Categorysection from '@/Components/Customer/Home/Categorysection.vue';
-import Featuredproducts from '@/Components/Customer/Home/Featuredproducts.vue';
+import CategorySection from '@/Components/Customer/Home/CategorySection.vue';
+import Featuredproducts from '@/Components/Customer/Home/FeaturedProducts.vue';
 import TrustSection from '@/Components/Customer/Home/TrustSection.vue';
 
 defineProps({
@@ -47,7 +47,7 @@ defineProps({
                 :website="settings.website"
             />
 
-            <Categorysection
+            <CategorySection
                 :categories="categories"
             />
 
