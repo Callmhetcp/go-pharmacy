@@ -8,41 +8,38 @@ RUN apk add --no-cache \
     unzip \
     libzip-dev \
     oniguruma-dev \
-    icu-dev \
     postgresql-dev \
     nodejs \
-    npm \
-    && docker-php-ext-install \
-        pdo \
-        pdo_pgsql \
-        mbstring \
-        bcmath \
-        intl \
-        zip
+    npm
 
-# Install Composer
+# PHP extensions
+RUN docker-php-ext-install \
+    pdo \
+    pdo_pgsql \
+    mbstring \
+    bcmath \
+    zip
+
+# Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-# Copy application before Composer.
-# composer.json autoloads app/helpers.php.
-COPY . .
+# Copy Composer files first for Docker layer caching
+COPY composer.json composer.lock ./
 
-# Install PHP dependencies
 RUN composer install \
     --no-dev \
-    --prefer-dist \
-    --no-interaction \
-    --optimize-autoloader
+    --optimize-autoloader \
+    --no-interaction
 
-# Install frontend dependencies
-RUN npm ci
+# Copy application
+COPY . .
 
-# Build production frontend assets
-RUN npm run build
+# Install frontend dependencies and build Vite
+RUN npm install && npm run build
 
-# Laravel writable directories
+# Laravel storage/cache permissions
 RUN mkdir -p \
     storage/framework/cache \
     storage/framework/sessions \
@@ -52,6 +49,8 @@ RUN mkdir -p \
 
 RUN chmod -R 775 storage bootstrap/cache
 
+# Render provides PORT at runtime
 EXPOSE 10000
 
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=10000"]
+# Run migrations before starting Laravel
+CMD ["sh", "-c", "php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=${PORT:-10000}"]
