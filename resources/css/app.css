@@ -1,12 +1,364 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Poppins:wght@300;400;500;600;700;800&display=swap');
+
 @import 'tailwindcss';
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
-@source "../**/*.blade.php";
-@source "../**/*.js";
-@source "../**/*.vue";
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+|--------------------------------------------------------------------------
+| Go Pharmacy Global Theme
+|--------------------------------------------------------------------------
+*/
+
+:root {
+    /*
+    |--------------------------------------------------------------------------
+    | Dynamic Website Colors
+    |--------------------------------------------------------------------------
+    |
+    | These values are replaced at runtime by CustomerLayout.vue using
+    | the colors saved in the admin settings.
+    |
+    */
+
+    --gp-primary: #16A34A;
+    --gp-accent: #22C55E;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Tailwind Theme
+|--------------------------------------------------------------------------
+*/
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Poppins', sans-serif;
+    --font-poppins: 'Poppins', sans-serif;
+    --font-montserrat: 'Montserrat', sans-serif;
+
+    /*
+    | Dynamic Go Pharmacy colors
+    */
+
+    --color-primary: var(--gp-primary);
+    --color-accent: var(--gp-accent);
+}
+
+/*
+|--------------------------------------------------------------------------
+| Base
+|--------------------------------------------------------------------------
+*/
+
+@layer base {
+    html {
+        font-family: 'Poppins', sans-serif;
+    }
+
+    body {
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+        font-weight: 400;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        font-family: 'Montserrat', sans-serif;
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+        font-family: 'Poppins', sans-serif;
+    }
+}
+
+/*
+|--------------------------------------------------------------------------
+| Font Utilities
+|--------------------------------------------------------------------------
+*/
+
+@utility font-poppins {
+    font-family: 'Poppins', sans-serif;
+}
+
+@utility font-montserrat {
+    font-family: 'Montserrat', sans-serif;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Customer Theme
+|--------------------------------------------------------------------------
+*/
+
+html.dark {
+    color-scheme: dark;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Admin Theme
+|--------------------------------------------------------------------------
+*/
+
+html.admin-dark {
+    color-scheme: dark;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Admin Root
+|--------------------------------------------------------------------------
+*/
+
+html.admin-dark .admin-layout {
+    background-color: #020617;
+    color: #f8fafc;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Admin Sidebar
+|--------------------------------------------------------------------------
+*/
+
+html.admin-dark .admin-layout aside {
+    background-color: #0f172a;
+    border-color: #1e293b;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Admin Header
+|--------------------------------------------------------------------------
+*/
+
+html.admin-dark .admin-layout header {
+    background-color: rgba(15, 23, 42, 0.96);
+    border-color: #1e293b;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Admin Main
+|--------------------------------------------------------------------------
+*/
+
+html.admin-dark .admin-layout main {
+    background-color: #020617;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Admin White Backgrounds
+|--------------------------------------------------------------------------
+*/
+
+html.admin-dark .admin-layout .bg-white {
+    background-color: #0f172a;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Admin Slate Backgrounds
+|--------------------------------------------------------------------------
+*/
+
+html.admin-dark .admin-layout .bg-slate-50 {
+    background-color: #020617;
+}
+
+html.admin-dark .admin-layout .bg-slate-100 {
+    background-color: #1e293b;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Admin Text
+|--------------------------------------------------------------------------
+*/
+
+html.admin-dark .admin-layout .text-slate-950 {
+    color: #f8fafc;
+}
+
+html.admin-dark .admin-layout .text-slate-900 {
+    color: #f1f5f9;
+}
+
+html.admin-dark .admin-layout .text-slate-800 {
+    color: #e2e8f0;
+}
+
+html.admin-dark .admin-layout .text-slate-700 {
+    color: #cbd5e1;
+}
+
+html.admin-dark .admin-layout .text-slate-600 {
+    color: #cbd5e1;
+}
+
+html.admin-dark .admin-layout .text-slate-500 {
+    color: #94a3b8;
+}
+
+html.admin-dark .admin-layout .text-slate-400 {
+    color: #64748b;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Admin Borders
+|--------------------------------------------------------------------------
+*/
+
+html.admin-dark .admin-layout .border-slate-200 {
+    border-color: #1e293b;
+}
+
+html.admin-dark .admin-layout .border-slate-300 {
+    border-color: #334155;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Admin Navigation Hover
+|--------------------------------------------------------------------------
+*/
+
+html.admin-dark .admin-layout .hover\:bg-slate-50:hover {
+    background-color: #1e293b;
+}
+
+html.admin-dark .admin-layout .hover\:bg-slate-100:hover {
+    background-color: #334155;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Admin Active Navigation
+|--------------------------------------------------------------------------
+*/
+
+html.admin-dark .admin-layout .bg-green-50 {
+    background-color: rgba(22, 163, 74, 0.15);
+}
+
+html.admin-dark .admin-layout .text-green-700 {
+    color: #4ade80;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Admin Green Profile Elements
+|--------------------------------------------------------------------------
+*/
+
+html.admin-dark .admin-layout .bg-green-100 {
+    background-color: rgba(22, 163, 74, 0.2);
+}
+
+html.admin-dark .admin-layout .text-green-600 {
+    color: #4ade80;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Admin Theme Button
+|--------------------------------------------------------------------------
+*/
+
+html.admin-dark .admin-layout .admin-theme-button {
+    background-color: #0f172a;
+    border-color: #334155;
+    color: #cbd5e1;
+}
+
+html.admin-dark .admin-layout .admin-theme-button:hover {
+    background-color: #1e293b;
+    border-color: #22c55e;
+    color: #4ade80;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Admin Forms
+|--------------------------------------------------------------------------
+*/
+
+html.admin-dark .admin-layout input,
+html.admin-dark .admin-layout select,
+html.admin-dark .admin-layout textarea {
+    background-color: #0f172a;
+    border-color: #334155;
+    color: #f8fafc;
+}
+
+html.admin-dark .admin-layout input::placeholder,
+html.admin-dark .admin-layout textarea::placeholder {
+    color: #64748b;
+}
+
+html.admin-dark .admin-layout input:focus,
+html.admin-dark .admin-layout select:focus,
+html.admin-dark .admin-layout textarea:focus {
+    border-color: #22c55e;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Admin Tables
+|--------------------------------------------------------------------------
+*/
+
+html.admin-dark .admin-layout table {
+    color: #e2e8f0;
+}
+
+html.admin-dark .admin-layout thead {
+    background-color: #1e293b;
+}
+
+html.admin-dark .admin-layout tbody tr {
+    border-color: #1e293b;
+}
+
+html.admin-dark .admin-layout tbody tr:hover {
+    background-color: #111827;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Admin Shadows
+|--------------------------------------------------------------------------
+*/
+
+html.admin-dark .admin-layout .shadow-sm,
+html.admin-dark .admin-layout .shadow,
+html.admin-dark .admin-layout .shadow-md,
+html.admin-dark .admin-layout .shadow-lg,
+html.admin-dark .admin-layout .shadow-xl {
+    --tw-shadow-color: rgba(0, 0, 0, 0.35);
+}
+
+/*
+|--------------------------------------------------------------------------
+| Admin Links
+|--------------------------------------------------------------------------
+*/
+
+html.admin-dark .admin-layout a {
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease;
 }
