@@ -45,7 +45,7 @@ COPY . .
 # Build production frontend assets
 RUN npm run build
 
-# Laravel permissions
+# Laravel writable directories
 RUN mkdir -p \
     storage/framework/cache \
     storage/framework/sessions \
