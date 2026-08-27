@@ -25,22 +25,19 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-# Copy Composer files first for better Docker caching
-COPY composer.json composer.lock ./
+# Copy application before Composer.
+# composer.json autoloads app/helpers.php.
+COPY . .
 
+# Install PHP dependencies
 RUN composer install \
     --no-dev \
     --prefer-dist \
     --no-interaction \
     --optimize-autoloader
 
-# Copy Node dependency files
-COPY package.json package-lock.json ./
-
+# Install frontend dependencies
 RUN npm ci
-
-# Copy application
-COPY . .
 
 # Build production frontend assets
 RUN npm run build
