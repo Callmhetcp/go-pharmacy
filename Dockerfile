@@ -25,21 +25,21 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-# Copy Composer files first for Docker layer caching
-COPY composer.json composer.lock ./
+# Copy the complete application
+COPY . .
 
+# Install PHP dependencies
 RUN composer install \
     --no-dev \
     --optimize-autoloader \
-    --no-interaction
+    --no-interaction \
+    --prefer-dist
 
-# Copy application
-COPY . .
+# Install frontend dependencies and build assets
+RUN npm install
+RUN npm run build
 
-# Install frontend dependencies and build Vite
-RUN npm install && npm run build
-
-# Laravel storage/cache permissions
+# Create Laravel runtime directories
 RUN mkdir -p \
     storage/framework/cache \
     storage/framework/sessions \
@@ -49,7 +49,6 @@ RUN mkdir -p \
 
 RUN chmod -R 775 storage bootstrap/cache
 
-# Render provides PORT at runtime
 EXPOSE 10000
 
 # Run migrations before starting Laravel
