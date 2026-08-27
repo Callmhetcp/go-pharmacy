@@ -74,30 +74,16 @@ return new class extends Migration
             |--------------------------------------------------------------------------
             */
 
-            $table->enum('status', [
-                'pending',
-                'confirmed',
-                'processing',
-                'ready',
-                'shipped',
-                'completed',
-                'cancelled',
-            ])->default('pending');
-
+            $table->string('status')
+                ->default('pending');
             /*
             |--------------------------------------------------------------------------
             | Payment Status
             |--------------------------------------------------------------------------
             */
 
-            $table->enum('payment_status', [
-                'unpaid',
-                'pending',
-                'paid',
-                'failed',
-                'refunded',
-            ])->default('unpaid');
-
+            $table->string('payment_status')
+                ->default('unpaid');
             /*
             |--------------------------------------------------------------------------
             | General Notes

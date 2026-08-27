@@ -26,16 +26,7 @@ return new class extends Migration
                 ->constrained()
                 ->nullOnDelete();
 
-            $table->enum('type', [
-                'purchase',
-                'sale',
-                'online_sale',
-                'return',
-                'adjustment',
-                'damaged',
-                'expired',
-                'correction',
-            ]);
+            $table->string('type');
 
             $table->integer('quantity');
 

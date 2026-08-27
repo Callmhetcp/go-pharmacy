@@ -31,12 +31,8 @@ return new class extends Migration
 
             $table->decimal('total_amount', 12, 2)->default(0);
 
-            $table->enum('status', [
-                'draft',
-                'ordered',
-                'received',
-                'cancelled',
-            ])->default('draft');
+            $table->string('status')
+                ->default('draft');
 
             $table->text('notes')->nullable();
 

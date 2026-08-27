@@ -13,14 +13,9 @@ return new class extends Migration
                 ->default(0)
                 ->after('quantity');
 
-            $table->enum('status', [
-                'active',
-                'expired',
-                'returned',
-                'partially_returned',
-            ])
-                ->default('active')
-                ->after('expiry_date');
+           $table->string('status')
+            ->default('active')
+            ->after('expiry_date');
 
             $table->index('status');
             $table->index(['expiry_date', 'status']);

@@ -63,14 +63,8 @@ return new class extends Migration
             |--------------------------------------------------------------------------
             */
 
-            $table->enum('status', [
-                'pending',
-                'processing',
-                'successful',
-                'failed',
-                'cancelled',
-                'refunded',
-            ])->default('pending');
+            $table->string('status')
+                ->default('pending');
 
             /*
             |--------------------------------------------------------------------------
