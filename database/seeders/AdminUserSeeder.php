@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use RuntimeException;
 
 class AdminUserSeeder extends Seeder
 {
@@ -13,11 +14,21 @@ class AdminUserSeeder extends Seeder
      */
     public function run(): void
     {
-        User::updateOrCreate(
-            ['email' => 'admin@gopharmacy.ng'],
+        $email = (string) env('ADMIN_EMAIL', 'admin@gopharmacy.ng');
+        $name = (string) env('ADMIN_NAME', 'Go Pharmacy Admin');
+        $password = env('ADMIN_PASSWORD');
+
+        if (blank($password)) {
+            throw new RuntimeException(
+                'ADMIN_PASSWORD must be set before the initial admin user can be seeded.'
+            );
+        }
+
+        User::firstOrCreate(
+            ['email' => $email],
             [
-                'name' => 'Go Pharmacy Admin',
-                'password' => Hash::make('ChangeMe123!'),
+                'name' => $name,
+                'password' => Hash::make($password),
                 'is_admin' => true,
             ]
         );
