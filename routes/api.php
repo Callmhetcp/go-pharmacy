@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\V1\Admin\InventoryController as AdminInventoryContr
 use App\Http\Controllers\Api\V1\Admin\ReviewController as AdminReviewController;
 use App\Http\Controllers\Api\V1\Admin\SettingsController as AdminSettingsController;
 use App\Http\Controllers\Api\V1\Admin\ReportController as AdminReportController;
+use App\Http\Controllers\Api\V1\AiController;
 
 
 use Illuminate\Session\Middleware\StartSession;
@@ -42,6 +43,17 @@ Route::prefix('v1')->group(function () {
             'message' => 'Go Pharmacy API is running.',
         ]);
     });
+
+    /*
+    |--------------------------------------------------------------------------
+    | AI Assistant
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post('/ai/chat', [
+        AiController::class,
+        'chat',
+    ]);
 
 
     /*
