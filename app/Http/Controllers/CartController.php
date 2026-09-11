@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\Prescription;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -66,11 +68,72 @@ class CartController extends Controller
             ->where('is_active', true)
             ->first();
 
-        if (! $product) {
-            return back()->with(
-                'error',
-                'Product not found or is no longer available.'
-            );
+        /*
+        |--------------------------------------------------------------------------
+        | Prescription requirement
+        |--------------------------------------------------------------------------
+        |
+        | Prescription-only medicines cannot be added to the cart unless
+        | the logged-in customer has an approved prescription linked
+        | to this specific product.
+        |
+        */
+        if ($product->requires_prescription) {
+            $user = Auth::user();
+
+            if (! $user) {
+                return redirect('/login')->with(
+                    'error',
+                    'Please log in before purchasing prescription medicine.'
+                );
+            }
+
+            $approvedPrescriptionExists = Prescription::query()
+                ->where('user_id', $user->id)
+                ->where('status', 'approved')
+                ->whereHas('items', function ($query) use ($product) {
+                    $query->where('product_id', $product->id);
+                })
+                ->exists();
+
+            if ($approvedPrescriptionExists) {
+                // Customer is allowed to continue.
+            } else {
+                $pendingPrescriptionExists = Prescription::query()
+                    ->where('user_id', $user->id)
+                    ->whereIn('status', ['pending', 'under_review'])
+                    ->whereHas('items', function ($query) use ($product) {
+                        $query->where('product_id', $product->id);
+                    })
+                    ->exists();
+
+                if ($pendingPrescriptionExists) {
+                    return redirect('/prescriptions')->with(
+                        'error',
+                        "Your prescription for {$product->name} is still being reviewed. You can add this medicine to your cart after it has been approved."
+                    );
+                }
+
+                $rejectedPrescriptionExists = Prescription::query()
+                    ->where('user_id', $user->id)
+                    ->where('status', 'rejected')
+                    ->whereHas('items', function ($query) use ($product) {
+                        $query->where('product_id', $product->id);
+                    })
+                    ->exists();
+
+                if ($rejectedPrescriptionExists) {
+                    return redirect('/prescriptions')->with(
+                        'error',
+                        "Your prescription for {$product->name} was not approved. Please upload a valid prescription before purchasing this medicine."
+                    );
+                }
+
+                return redirect('/prescriptions')->with(
+                    'error',
+                    "A valid prescription is required for {$product->name}. Please upload your prescription and wait for pharmacy approval before adding this medicine to your cart."
+                );
+            }
         }
 
         /*
