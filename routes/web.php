@@ -697,6 +697,14 @@ Route::middleware(['auth', 'admin'])
                 'returnToSupplier',
             ]
         )->name('expiry-reminder.return-to-supplier');
+
+        Route::post(
+            '/expiry-reminder/{purchaseItem}/dispose',
+            [
+                ExpiryReminderController::class,
+                'dispose',
+            ]
+        )->name('expiry-reminder.dispose');
     });
 
 

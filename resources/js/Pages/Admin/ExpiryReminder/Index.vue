@@ -32,8 +32,10 @@ const props = defineProps({
 const activeTab = ref('expired')
 
 const showReturnModal = ref(false)
+const showDisposalModal = ref(false)
 const selectedBatch = ref(null)
 const returnQuantity = ref(1)
+const disposalQuantity = ref(1)
 const processing = ref(false)
 
 const tabs = computed(() => [
@@ -94,6 +96,22 @@ const closeReturnModal = () => {
     returnQuantity.value = 1
 }
 
+const openDisposalModal = (batch) => {
+    selectedBatch.value = batch
+    disposalQuantity.value = batch.quantity > 0 ? batch.quantity : 1
+    showDisposalModal.value = true
+}
+
+const closeDisposalModal = () => {
+    if (processing.value) {
+        return
+    }
+
+    showDisposalModal.value = false
+    selectedBatch.value = null
+    disposalQuantity.value = 1
+}
+
 const submitReturn = () => {
     if (!selectedBatch.value) {
         return
@@ -113,7 +131,7 @@ const submitReturn = () => {
 
     router.post(
         route(
-            'admin.expiry-reminders.return-to-supplier',
+            'admin.expiry-reminder.return-to-supplier',
             selectedBatch.value.id
         ),
         {
@@ -133,6 +151,38 @@ const submitReturn = () => {
     )
 }
 
+const submitDisposal = () => {
+    if (!selectedBatch.value) {
+        return
+    }
+
+    const quantity = Number(disposalQuantity.value)
+
+    if (
+        !Number.isInteger(quantity) ||
+        quantity < 1 ||
+        quantity > Number(selectedBatch.value.quantity)
+    ) {
+        return
+    }
+
+    processing.value = true
+
+    router.post(
+        route('admin.expiry-reminder.dispose', selectedBatch.value.id),
+        { quantity },
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                processing.value = false
+            },
+            onSuccess: () => {
+                closeDisposalModal()
+            },
+        }
+    )
+}
+
 const markExpired = (batch) => {
     if (!batch?.id) {
         return
@@ -140,20 +190,27 @@ const markExpired = (batch) => {
 
     if (
         !window.confirm(
-            `Mark "${batch.product_name}" batch ${batch.batch_number || 'N/A'} as expired and remove ${batch.quantity} unit(s) from inventory?`
+            `Mark "${batch.product_name}" batch ${batch.batch_number || 'N/A'} as expired? You can then record its disposal.`
         )
     ) {
         return
     }
 
     router.post(
-        route('admin.expiry-reminders.mark-expired', batch.id),
+        route('admin.expiry-reminder.mark-expired', batch.id),
         {},
         {
             preserveScroll: true,
         }
     )
 }
+
+const canMarkExpired = (batch) =>
+    batch.quantity > 0 &&
+    !['expired', 'returned', 'disposed'].includes(batch.status)
+
+const canDispose = (batch) =>
+    batch.status === 'expired' && batch.quantity > 0
 
 const statusClasses = (status) => {
     switch (status) {
@@ -168,6 +225,9 @@ const statusClasses = (status) => {
 
         case 'expired':
             return 'bg-red-50 text-red-700 ring-1 ring-red-200'
+
+        case 'disposed':
+            return 'bg-slate-200 text-slate-700 ring-1 ring-slate-300'
 
         default:
             return 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'
@@ -532,7 +592,8 @@ const statusLabel = (status) => {
 
                                             <button
                                                 v-if="
-                                                    activeTab === 'expired'
+                                                    activeTab === 'expired' &&
+                                                    canMarkExpired(batch)
                                                 "
                                                 type="button"
                                                 @click="
@@ -541,6 +602,18 @@ const statusLabel = (status) => {
                                                 class="rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-red-700"
                                             >
                                                 Mark Expired
+                                            </button>
+
+                                            <button
+                                                v-if="
+                                                    activeTab === 'expired' &&
+                                                    canDispose(batch)
+                                                "
+                                                type="button"
+                                                @click="openDisposalModal(batch)"
+                                                class="rounded-lg bg-slate-800 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-900"
+                                            >
+                                                Dispose
                                             </button>
                                         </div>
                                     </td>
@@ -663,15 +736,116 @@ const statusLabel = (status) => {
                             </button>
 
                             <button
-                                v-if="activeTab === 'expired'"
+                                v-if="
+                                    activeTab === 'expired' &&
+                                    canMarkExpired(batch)
+                                "
                                 type="button"
                                 @click="markExpired(batch)"
                                 class="flex-1 rounded-lg bg-red-600 px-3 py-2.5 text-sm font-semibold text-white"
                             >
                                 Mark as Expired
                             </button>
+
+                            <button
+                                v-if="
+                                    activeTab === 'expired' &&
+                                    canDispose(batch)
+                                "
+                                type="button"
+                                @click="openDisposalModal(batch)"
+                                class="flex-1 rounded-lg bg-slate-800 px-3 py-2.5 text-sm font-semibold text-white"
+                            >
+                                Dispose
+                            </button>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Disposal Modal -->
+        <div
+            v-if="showDisposalModal && selectedBatch"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+            @click.self="closeDisposalModal"
+        >
+            <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+                <div class="flex items-start justify-between gap-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900">
+                            Dispose Expired Stock
+                        </h2>
+
+                        <p class="mt-1 text-sm text-slate-500">
+                            This permanently removes the selected quantity from inventory.
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        @click="closeDisposalModal"
+                        class="text-2xl leading-none text-slate-400 hover:text-slate-700"
+                    >
+                        &times;
+                    </button>
+                </div>
+
+                <div class="mt-5 rounded-xl bg-slate-50 p-4">
+                    <p class="font-semibold text-slate-900">
+                        {{ selectedBatch.product_name }}
+                    </p>
+
+                    <p class="mt-1 text-sm text-slate-600">
+                        Batch: {{ selectedBatch.batch_number || 'N/A' }}
+                    </p>
+
+                    <p class="mt-1 text-sm text-slate-600">
+                        Available to dispose: {{ selectedBatch.quantity }} unit(s)
+                    </p>
+                </div>
+
+                <div class="mt-5">
+                    <label
+                        for="disposal-quantity"
+                        class="block text-sm font-semibold text-slate-700"
+                    >
+                        Quantity to dispose
+                    </label>
+
+                    <input
+                        id="disposal-quantity"
+                        v-model.number="disposalQuantity"
+                        type="number"
+                        min="1"
+                        :max="selectedBatch.quantity"
+                        class="mt-2 block w-full rounded-lg border-slate-300 px-3 py-2.5 text-sm shadow-sm focus:border-slate-700 focus:ring-slate-700"
+                    />
+                </div>
+
+                <div class="mt-6 flex justify-end gap-3">
+                    <button
+                        type="button"
+                        @click="closeDisposalModal"
+                        :disabled="processing"
+                        class="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        type="button"
+                        @click="submitDisposal"
+                        :disabled="
+                            processing ||
+                            !Number.isInteger(Number(disposalQuantity)) ||
+                            Number(disposalQuantity) < 1 ||
+                            Number(disposalQuantity) > Number(selectedBatch.quantity)
+                        "
+                        class="rounded-lg bg-slate-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        {{ processing ? 'Processing...' : 'Confirm Disposal' }}
+                    </button>
                 </div>
             </div>
         </div>

@@ -18,20 +18,64 @@ const props = defineProps({
         type: Object,
         default: null,
     },
+
+    savedAddresses: {
+        type: Array,
+        default: () => [],
+    },
 });
+
+const defaultAddress = props.savedAddresses.find(
+    (address) => address.is_default
+) ?? props.savedAddresses[0] ?? null;
 
 const form = useForm({
     customer_name: props.user?.name ?? '',
     customer_email: props.user?.email ?? '',
-    customer_phone: props.user?.phone ?? '',
+    customer_phone: defaultAddress?.phone ?? props.user?.phone ?? '',
 
-    delivery_address: '',
-    delivery_city: '',
-    delivery_state: '',
-    delivery_notes: '',
+    delivery_address: defaultAddress?.address ?? '',
+    delivery_city: defaultAddress?.city ?? '',
+    delivery_state: defaultAddress?.state ?? '',
+    delivery_notes: defaultAddress?.delivery_notes ?? '',
 
     notes: '',
+
+    saved_address_id: defaultAddress?.id ?? null,
+    address_label: defaultAddress?.label ?? 'Delivery address',
+    save_address: false,
+    update_saved_address: false,
 });
+
+const selectSavedAddress = (address) => {
+    form.saved_address_id = address.id;
+    form.address_label = address.label ?? 'Delivery address';
+    form.customer_name = address.recipient_name;
+    form.customer_phone = address.phone;
+    form.delivery_address = address.address;
+    form.delivery_city = address.city;
+    form.delivery_state = address.state;
+    form.delivery_notes = address.delivery_notes ?? '';
+    form.save_address = false;
+    form.update_saved_address = false;
+};
+
+const useNewAddress = () => {
+    form.saved_address_id = null;
+    form.address_label = 'Delivery address';
+    form.delivery_address = '';
+    form.delivery_city = '';
+    form.delivery_state = '';
+    form.delivery_notes = '';
+    form.save_address = false;
+    form.update_saved_address = false;
+};
+
+const updateSelectedAddress = () => {
+    if (form.update_saved_address) {
+        form.save_address = true;
+    }
+};
 
 /*
 |--------------------------------------------------------------------------
@@ -375,6 +419,64 @@ const submit = () => {
                                 </p>
                             </div>
 
+                            <div
+                                v-if="savedAddresses.length"
+                                class="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950"
+                            >
+                                <div class="flex items-center justify-between gap-3">
+                                    <div>
+                                        <h3 class="text-sm font-bold text-slate-900 dark:text-white">
+                                            Saved delivery details
+                                        </h3>
+
+                                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                            Select one to prefill checkout, then edit the form if needed.
+                                        </p>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        @click="useNewAddress"
+                                        class="shrink-0 text-xs font-semibold text-green-600 hover:text-green-700 dark:text-green-400"
+                                    >
+                                        Use new address
+                                    </button>
+                                </div>
+
+                                <div class="mt-4 grid gap-3 sm:grid-cols-2">
+                                    <button
+                                        v-for="address in savedAddresses"
+                                        :key="address.id"
+                                        type="button"
+                                        @click="selectSavedAddress(address)"
+                                        class="rounded-lg border p-3 text-left transition"
+                                        :class="
+                                            form.saved_address_id === address.id
+                                                ? 'border-green-500 bg-green-50 ring-2 ring-green-500/20 dark:bg-green-950/30'
+                                                : 'border-slate-200 bg-white hover:border-green-300 dark:border-slate-700 dark:bg-slate-900'
+                                        "
+                                    >
+                                        <div class="flex items-center justify-between gap-2">
+                                            <span class="text-sm font-semibold text-slate-900 dark:text-white">
+                                                {{ address.label || 'Delivery address' }}
+                                            </span>
+
+                                            <span
+                                                v-if="address.is_default"
+                                                class="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-green-700 dark:bg-green-950 dark:text-green-300"
+                                            >
+                                                Default
+                                            </span>
+                                        </div>
+
+                                        <p class="mt-2 text-xs leading-5 text-slate-600 dark:text-slate-300">
+                                            {{ address.recipient_name }} · {{ address.phone }}<br>
+                                            {{ address.address }}, {{ address.city }}, {{ address.state }}
+                                        </p>
+                                    </button>
+                                </div>
+                            </div>
+
                             <div class="space-y-5">
 
                                 <!-- Address -->
@@ -487,6 +589,44 @@ const submit = () => {
                                     >
                                         {{ form.errors.delivery_notes }}
                                     </p>
+                                </div>
+
+                                <div
+                                    v-if="user"
+                                    class="rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-900/70 dark:bg-green-950/30"
+                                >
+                                    <label
+                                        v-if="form.saved_address_id"
+                                        class="flex cursor-pointer items-start gap-3"
+                                    >
+                                        <input
+                                            v-model="form.update_saved_address"
+                                            type="checkbox"
+                                            class="mt-0.5 rounded border-slate-300 text-green-600 focus:ring-green-500"
+                                            @change="updateSelectedAddress"
+                                        >
+
+                                        <span class="text-sm text-slate-700 dark:text-slate-200">
+                                            <span class="font-semibold">Update this saved address</span><br>
+                                            Save the edits above for your next order. Your existing orders will not change.
+                                        </span>
+                                    </label>
+
+                                    <label
+                                        v-else
+                                        class="flex cursor-pointer items-start gap-3"
+                                    >
+                                        <input
+                                            v-model="form.save_address"
+                                            type="checkbox"
+                                            class="mt-0.5 rounded border-slate-300 text-green-600 focus:ring-green-500"
+                                        >
+
+                                        <span class="text-sm text-slate-700 dark:text-slate-200">
+                                            <span class="font-semibold">Save these delivery details</span><br>
+                                            Reuse them at checkout next time.
+                                        </span>
+                                    </label>
                                 </div>
                             </div>
                         </section>

@@ -50,10 +50,12 @@ Route::prefix('v1')->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::post('/ai/chat', [
-        AiController::class,
-        'chat',
-    ]);
+    Route::middleware('web')->group(function () {
+        Route::post('/ai/chat', [
+            AiController::class,
+            'chat',
+        ]);
+    });
 
 
     /*

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Product;
+use App\Services\GeminiService;
 use Illuminate\Support\Collection;
 
 class GoPharmacyAiService
@@ -62,6 +63,84 @@ class GoPharmacyAiService
         ->get();
 }
 
+public function searchProducts(array $filters): Collection
+{
+    $query = Product::query()
+        ->with(['category', 'inventory'])
+        ->where('is_active', true);
+
+    if (!empty($filters['search'])) {
+        $search = trim($filters['search']);
+        $query->where(function ($query) use ($search) {
+            $query
+                ->where('name', 'like', '%' . $search . '%')
+                ->orWhere('generic_name', 'like', '%' . $search . '%')
+                ->orWhere('brand', 'like', '%' . $search . '%')
+                ->orWhere('description', 'like', '%' . $search . '%')
+                ->orWhereHas('category', function ($categoryQuery) use ($search) {
+                    $categoryQuery
+                        ->where('name', 'like', '%' . $search . '%')
+                        ->orWhere('description', 'like', '%' . $search . '%');
+                });
+        });
+    }
+
+    if (isset($filters['max_price'])) {
+        $query->where('price', '<=', $filters['max_price']);
+    }
+
+    if (isset($filters['min_price'])) {
+        $query->where('price', '>=', $filters['min_price']);
+    }
+
+    if (isset($filters['prescription_required'])) {
+        $query->where(
+            'requires_prescription',
+            $filters['prescription_required']
+        );
+    }
+
+    return $query
+        ->limit(10)
+        ->get();
+}
+
+public function extractProductFilters(
+    string $message,
+    GeminiService $gemini
+): array {
+    $prompt = <<<PROMPT
+You are helping Go Pharmacy understand a customer's product search request.
+
+Extract only the following information from the customer's message:
+
+- search: the product, medicine, symptom, condition, brand, or category they are asking about
+- min_price: minimum price in Nigerian Naira, or null
+- max_price: maximum price in Nigerian Naira, or null
+- prescription_required: true if they specifically require a prescription product, false if they specifically want a non-prescription product, otherwise null
+
+Return ONLY valid JSON using exactly this structure:
+
+{
+    "search": string or null,
+    "min_price": number or null,
+    "max_price": number or null,
+    "prescription_required": true or false or null
+}
+
+Do not recommend a medicine.
+Do not diagnose the customer.
+Do not invent information.
+Do not include markdown.
+Do not include explanations.
+
+Customer message:
+{$message}
+PROMPT;
+
+    return $gemini->generateJson($prompt);
+}
+
 public function isProductQuestion(string $message): bool
 {
     $productTerms = Product::query()
@@ -82,7 +161,47 @@ public function isProductQuestion(string $message): bool
         ->map(fn ($term) => strtolower($term))
         ->values();
 
+    $searchTerms = [
+        'medicine',
+        'medicines',
+        'drug',
+        'drugs',
+        'tablet',
+        'tablets',
+        'capsule',
+        'capsules',
+        'syrup',
+        'cream',
+        'ointment',
+        'pain',
+        'fever',
+        'cough',
+        'cold',
+        'allergy',
+        'vitamin',
+        'vitamins',
+        'supplement',
+        'supplements',
+        'prescription',
+        'prescriptions',
+        'product',
+        'products',
+        'buy',
+        'purchase',
+        'price',
+        'cost',
+        'available',
+        'stock',
+        'have',
+    ];
+
     $message = strtolower($message);
+
+    foreach ($searchTerms as $term) {
+        if (str_contains($message, $term)) {
+            return true;
+        }
+    }
 
     foreach ($productTerms as $term) {
         if (str_contains($message, $term)) {

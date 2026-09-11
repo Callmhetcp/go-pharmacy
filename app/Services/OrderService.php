@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\Order;
 use App\Models\Product;
 use App\Support\Settings;
+use App\Models\Prescription;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -58,6 +60,8 @@ class OrderService
         if (empty($cart)) {
             throw new RuntimeException('Your cart is empty.');
         }
+
+        $this->validatePrescriptionRequirements($cart);
 
         return DB::transaction(function () use ($data, $cart) {
             $subtotal = 0;
@@ -502,5 +506,52 @@ class OrderService
         );
 
         return $number;
+    }
+
+    private function validatePrescriptionRequirements(array $cart): void
+    {
+        $userId = Auth::id();
+
+        foreach ($cart as $item) {
+
+            $productId = $item['product_id']
+                ?? $item['id']
+                ?? null;
+
+            if (!$productId) {
+                throw new RuntimeException(
+                    'Invalid product information in cart.'
+                );
+            }
+
+            $product = Product::query()
+                ->whereKey($productId)
+                ->where('is_active', true)
+                ->first();
+
+            if (!$product || !$product->requires_prescription) {
+                continue;
+            }
+
+            if (!$userId) {
+                throw ValidationException::withMessages([
+                    'cart' => "A prescription is required for {$product->name}. Please log in to continue.",
+                ]);
+            }
+
+            $hasApprovedPrescription = Prescription::query()
+                ->where('user_id', $userId)
+                ->where('status', 'approved')
+                ->whereHas('items', function ($query) use ($product) {
+                    $query->where('product_id', $product->id);
+                })
+                ->exists();
+
+            if (!$hasApprovedPrescription) {
+                throw ValidationException::withMessages([
+                    'cart' => "An approved prescription is required for {$product->name} before it can be purchased.",
+                ]);
+            }
+        }
     }
 }

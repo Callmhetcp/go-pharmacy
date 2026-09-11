@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Address;
+use App\Models\User;
 use App\Services\OrderService;
 use App\Support\Settings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 use Throwable;
@@ -92,12 +95,40 @@ class CheckoutController extends Controller
             $subtotal + $deliveryFee - $discount
         );
 
+        $user = $request->user();
+
+        $savedAddresses = $user
+            ? $user->addresses()
+                ->orderByDesc('is_default')
+                ->latest()
+                ->get([
+                    'id',
+                    'label',
+                    'recipient_name',
+                    'phone',
+                    'address',
+                    'city',
+                    'state',
+                    'country',
+                    'postal_code',
+                    'delivery_notes',
+                    'is_default',
+                ])
+            : collect();
+
         return Inertia::render('Checkout/Create', [
             'cart' => $cartItems,
             'cartSubtotal' => $subtotal,
             'deliveryFee' => $deliveryFee,
             'discount' => $discount,
             'total' => $total,
+            'user' => $user?->only([
+                'id',
+                'name',
+                'email',
+                'phone',
+            ]),
+            'savedAddresses' => $savedAddresses,
         ]);
     }
 
@@ -175,7 +206,35 @@ class CheckoutController extends Controller
                 'string',
                 'max:1000',
             ],
+
+            'save_address' => [
+                'sometimes',
+                'boolean',
+            ],
+
+            'saved_address_id' => [
+                'nullable',
+                'integer',
+            ],
+
+            'update_saved_address' => [
+                'sometimes',
+                'boolean',
+            ],
+
+            'address_label' => [
+                'nullable',
+                'string',
+                'max:100',
+            ],
         ]);
+
+        if (
+            $request->boolean('save_address') &&
+            ! $request->user()
+        ) {
+            abort(403, 'Sign in before saving delivery details.');
+        }
 
         /*
         |--------------------------------------------------------------------------
@@ -267,10 +326,27 @@ class CheckoutController extends Controller
             |
             */
 
-            $order = $orderService->createOrder(
+            $order = DB::transaction(function () use (
+                $request,
                 $validated,
-                $cart
-            );
+                $cart,
+                $orderService
+            ) {
+                $order = $orderService->createOrder(
+                    $validated,
+                    $cart
+                );
+
+                if ($request->boolean('save_address')) {
+                    $this->saveDeliveryAddress(
+                        $request->user(),
+                        $validated,
+                        $request->boolean('update_saved_address')
+                    );
+                }
+
+                return $order;
+            });
 
             /*
             |--------------------------------------------------------------------------
@@ -314,5 +390,55 @@ class CheckoutController extends Controller
                     $exception->getMessage()
                 );
         }
+    }
+
+    /**
+     * Save a new delivery address or explicitly update the selected one.
+     * Orders retain their own delivery fields, so later address edits do not
+     * alter an order that has already been placed.
+     */
+    private function saveDeliveryAddress(
+        User $user,
+        array $data,
+        bool $updateSelectedAddress
+    ): Address {
+        $addressData = [
+            'label' => $data['address_label'] ?? 'Delivery address',
+            'recipient_name' => $data['customer_name'],
+            'phone' => $data['customer_phone'] ?? '',
+            'address' => $data['delivery_address'] ?? '',
+            'city' => $data['delivery_city'] ?? '',
+            'state' => $data['delivery_state'] ?? '',
+            'country' => 'Nigeria',
+            'delivery_notes' => $data['delivery_notes'] ?? null,
+        ];
+
+        if (
+            blank($addressData['phone']) ||
+            blank($addressData['address']) ||
+            blank($addressData['city']) ||
+            blank($addressData['state'])
+        ) {
+            abort(
+                422,
+                'Phone number and complete delivery address are required to save delivery details.'
+            );
+        }
+
+        if (! empty($data['saved_address_id'])) {
+            $address = $user->addresses()
+                ->whereKey($data['saved_address_id'])
+                ->firstOrFail();
+
+            if ($updateSelectedAddress) {
+                $address->update($addressData);
+            }
+
+            return $address;
+        }
+
+        $addressData['is_default'] = ! $user->addresses()->exists();
+
+        return $user->addresses()->create($addressData);
     }
 }

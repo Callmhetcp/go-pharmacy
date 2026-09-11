@@ -168,6 +168,33 @@ class ExpiryReminderController extends Controller
     }
 
     /**
+     * Dispose part or all of an expired purchase batch.
+     */
+    public function dispose(
+        Request $request,
+        PurchaseItem $purchaseItem,
+        ExpiryService $expiryService
+    ): RedirectResponse {
+        $validated = $request->validate([
+            'quantity' => [
+                'required',
+                'integer',
+                'min:1',
+            ],
+        ]);
+
+        $expiryService->disposeExpired(
+            $purchaseItem,
+            (int) $validated['quantity']
+        );
+
+        return back()->with(
+            'success',
+            'Expired purchase batch has been disposed.'
+        );
+    }
+
+    /**
      * Format an expired purchase item for the frontend.
      */
     private function formatExpiredItem(

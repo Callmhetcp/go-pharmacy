@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { useCustomerTheme } from '@/Composables/useCustomerTheme';
+import PharmacyAiChat from '@/Components/Ai/PharmacyAiChat.vue';
 
 const page = usePage();
 
@@ -953,5 +954,8 @@ const toggleTheme = () => {
                 </div>
             </div>
         </footer>
+
+        <!-- Go Pharmacy AI Assistant --> 
+         <PharmacyAiChat />
     </div>
 </template>

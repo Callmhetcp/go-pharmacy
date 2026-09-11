@@ -42,6 +42,12 @@ class GeminiService
                 ]
             );
 
+       if ($response->status() === 429) {
+            throw new RuntimeException(
+                'Gemini API quota has been exceeded. Please try again later.'
+            );
+        }
+
         if ($response->failed()) {
             throw new RuntimeException(
                 'Gemini API request failed: ' . $response->body()
@@ -58,4 +64,26 @@ class GeminiService
 
         return trim($answer);
     }
+
+    public function generateJson(string $prompt): array
+{
+    $response = $this->generate($prompt);
+
+    $response = trim($response);
+
+    // Remove Markdown code fences if Gemini adds them.
+    $response = preg_replace('/^```json\s*/i', '', $response);
+    $response = preg_replace('/^```\s*/', '', $response);
+    $response = preg_replace('/\s*```$/', '', $response);
+
+    $data = json_decode(trim($response), true);
+
+    if (!is_array($data)) {
+        throw new RuntimeException(
+            'Gemini returned invalid JSON.'
+        );
+    }
+
+    return $data;
+}
 }
