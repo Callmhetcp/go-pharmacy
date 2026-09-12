@@ -24,11 +24,13 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PrescriptionController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ShopController;
+use App\Http\Controllers\Auth\GoogleController;
 
 use App\Models\Advertisement;
 use App\Models\Category;
 use App\Models\Product;
 use App\Support\Settings;
+
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -708,10 +710,26 @@ Route::middleware(['auth', 'admin'])
     });
 
 
+    /*
+|--------------------------------------------------------------------------
+| Google Authentication
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/auth/google', [GoogleController::class, 'redirect'])
+    ->name('auth.google');
+
+Route::get('/auth/google/callback', [GoogleController::class, 'callback'])
+    ->name('auth.google.callback');
+
+
+
 /*
 |--------------------------------------------------------------------------
 | Authentication
 |--------------------------------------------------------------------------
 */
+
+
 
 require __DIR__ . '/auth.php';
