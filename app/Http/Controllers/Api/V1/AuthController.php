@@ -8,6 +8,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Laravel\Socialite\Facades\Socialite;
+use Throwable;
 
 class AuthController extends Controller
 {
@@ -104,6 +106,85 @@ class AuthController extends Controller
                 'token_type' => 'Bearer',
             ],
         ]);
+    }
+
+    /**
+     * Authenticate a customer using a Google access token.
+     */
+    public function google(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'access_token' => [
+                'required',
+                'string',
+            ],
+        ]);
+
+        try {
+            $googleUser = Socialite::driver('google')
+                ->stateless()
+                ->userFromToken($validated['access_token']);
+
+            $email = $googleUser->getEmail();
+
+            if (! $email) {
+                throw ValidationException::withMessages([
+                    'access_token' => [
+                        'Google did not provide an email address.',
+                    ],
+                ]);
+            }
+
+            $user = User::query()
+                ->where('google_id', $googleUser->getId())
+                ->orWhere('email', $email)
+                ->first();
+
+            if ($user) {
+                if (! $user->google_id) {
+                    $user->google_id = $googleUser->getId();
+                }
+
+                if (! $user->email_verified_at) {
+                    $user->email_verified_at = now();
+                }
+
+                $user->save();
+            } else {
+                $user = User::create([
+                    'name' => $googleUser->getName()
+                        ?: $googleUser->getNickname()
+                        ?: 'Google User',
+                    'email' => $email,
+                    'google_id' => $googleUser->getId(),
+                    'email_verified_at' => now(),
+                    'password' => null,
+                ]);
+            }
+
+            $token = $user
+                ->createToken('go-pharmacy-api')
+                ->plainTextToken;
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Google login successful.',
+                'data' => [
+                    'user' => $user,
+                    'token' => $token,
+                    'token_type' => 'Bearer',
+                ],
+            ]);
+        } catch (ValidationException $e) {
+    throw $e;
+    } catch (Throwable $e) {
+        report($e);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Unable to authenticate with Google.',
+        ], 401);
+    }
     }
 
     /**

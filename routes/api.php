@@ -74,6 +74,11 @@ Route::prefix('v1')->group(function () {
         'login',
     ]);
 
+    Route::post('/auth/google', [
+        AuthController::class,
+        'google',
+    ]);
+
 
     /*
     |--------------------------------------------------------------------------
