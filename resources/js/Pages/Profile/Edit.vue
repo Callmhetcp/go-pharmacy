@@ -1,8 +1,10 @@
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import CustomerLayout from '@/Layouts/CustomerLayout.vue';
+
 import DeleteUserForm from './Partials/DeleteUserForm.vue';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm.vue';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm.vue';
+
 import { Head } from '@inertiajs/vue3';
 
 defineProps({
@@ -19,7 +21,7 @@ defineProps({
 <template>
     <Head title="My Profile" />
 
-    <AuthenticatedLayout>
+    <CustomerLayout>
         <div
             class="min-h-screen bg-slate-50 text-slate-900 transition-colors duration-200 dark:bg-slate-950 dark:text-slate-100"
         >
@@ -27,7 +29,9 @@ defineProps({
             <section
                 class="border-b border-slate-200 bg-white transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900"
             >
-                <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+                <div
+                    class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8"
+                >
                     <div class="flex items-center gap-4">
                         <div
                             class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-green-600 text-xl font-extrabold text-white shadow-sm"
@@ -64,13 +68,11 @@ defineProps({
                 class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8"
             >
                 <div class="grid gap-8 lg:grid-cols-12">
-
                     <!-- LEFT SIDEBAR -->
                     <aside class="lg:col-span-4">
-
-                        <!-- Account Card -->
+                        <!-- ACCOUNT CARD -->
                         <div
-                            class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900"
+                            class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
                         >
                             <!-- Account Header -->
                             <div
@@ -94,10 +96,9 @@ defineProps({
                                 </p>
                             </div>
 
-                            <!-- Sidebar Links -->
+                            <!-- Account Navigation -->
                             <div class="p-4">
-
-                                <!-- Active Profile -->
+                                <!-- Profile -->
                                 <div
                                     class="flex items-center gap-3 rounded-xl bg-green-50 px-4 py-3 dark:bg-green-950/40"
                                 >
@@ -163,7 +164,9 @@ defineProps({
                                             Security
                                         </p>
 
-                                        <p class="text-xs text-slate-500 dark:text-slate-500">
+                                        <p
+                                            class="text-xs text-slate-500 dark:text-slate-500"
+                                        >
                                             Password protection
                                         </p>
                                     </div>
@@ -171,9 +174,9 @@ defineProps({
                             </div>
                         </div>
 
-                        <!-- Security Card -->
+                        <!-- SECURITY CARD -->
                         <div
-                            class="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900"
+                            class="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900"
                         >
                             <h3
                                 class="font-semibold text-slate-900 dark:text-white"
@@ -189,8 +192,6 @@ defineProps({
                             </p>
 
                             <div class="mt-5 space-y-4">
-
-                                <!-- Secure -->
                                 <div class="flex gap-3">
                                     <span
                                         class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-green-100 text-sm font-bold text-green-600 dark:bg-green-900/40 dark:text-green-400"
@@ -214,7 +215,6 @@ defineProps({
                                     </div>
                                 </div>
 
-                                <!-- Password -->
                                 <div class="flex gap-3">
                                     <span
                                         class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-green-100 text-sm font-bold text-green-600 dark:bg-green-900/40 dark:text-green-400"
@@ -236,20 +236,18 @@ defineProps({
                                         </p>
                                     </div>
                                 </div>
-
                             </div>
                         </div>
                     </aside>
 
                     <!-- RIGHT CONTENT -->
                     <div class="space-y-8 lg:col-span-8">
-
-                        <!-- PROFILE INFORMATION -->
+                        <!-- PERSONAL INFORMATION -->
                         <section
-                            class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900"
+                            class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
                         >
                             <div
-                                class="border-b border-slate-200 px-6 py-6 sm:px-8 dark:border-slate-800"
+                                class="border-b border-slate-200 px-6 py-6 dark:border-slate-800 sm:px-8"
                             >
                                 <h2
                                     class="text-xl font-bold text-slate-900 dark:text-white"
@@ -274,10 +272,10 @@ defineProps({
 
                         <!-- PASSWORD -->
                         <section
-                            class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-colors duration-200 dark:border-slate-800 dark:bg-slate-900"
+                            class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
                         >
                             <div
-                                class="border-b border-slate-200 px-6 py-6 sm:px-8 dark:border-slate-800"
+                                class="border-b border-slate-200 px-6 py-6 dark:border-slate-800 sm:px-8"
                             >
                                 <h2
                                     class="text-xl font-bold text-slate-900 dark:text-white"
@@ -298,12 +296,12 @@ defineProps({
                             </div>
                         </section>
 
-                        <!-- DELETE -->
+                        <!-- DELETE ACCOUNT -->
                         <section
-                            class="overflow-hidden rounded-2xl border border-red-200 bg-white shadow-sm transition-colors duration-200 dark:border-red-900/50 dark:bg-slate-900"
+                            class="overflow-hidden rounded-2xl border border-red-200 bg-white shadow-sm dark:border-red-900/50 dark:bg-slate-900"
                         >
                             <div
-                                class="border-b border-red-100 bg-red-50 px-6 py-6 sm:px-8 dark:border-red-900/40 dark:bg-red-950/30"
+                                class="border-b border-red-100 bg-red-50 px-6 py-6 dark:border-red-900/40 dark:bg-red-950/30 sm:px-8"
                             >
                                 <h2
                                     class="text-xl font-bold text-red-700 dark:text-red-400"
@@ -323,10 +321,9 @@ defineProps({
                                 <DeleteUserForm />
                             </div>
                         </section>
-
                     </div>
                 </div>
             </main>
         </div>
-    </AuthenticatedLayout>
+    </CustomerLayout>
 </template>

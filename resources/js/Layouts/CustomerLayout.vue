@@ -1,13 +1,22 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
-
 import { useCustomerTheme } from '@/Composables/useCustomerTheme';
 import PharmacyAiChat from '@/Components/Ai/PharmacyAiChat.vue';
 
 const page = usePage();
 const mobileMenuOpen = ref(false);
 const { theme, setTheme } = useCustomerTheme();
+
+/*
+|--------------------------------------------------------------------------
+| Navigation
+|--------------------------------------------------------------------------
+*/
+
+const isActive = (path) => {
+    return page.url === path;
+};
 
 /*
 |--------------------------------------------------------------------------
@@ -184,7 +193,6 @@ const toggleTheme = () => {
         <!-- =========================================================
              HEADER
         ========================================================== -->
-
         <header
             class="sticky top-0 z-50 border-b border-slate-200/80 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95"
         >
@@ -322,8 +330,13 @@ const toggleTheme = () => {
                     <!-- Wishlist -->
                     <Link
                         v-if="isAuthenticated"
-                        :href="route('wishlist.index')"
-                        class="rounded-xl p-3 text-slate-600 transition hover:bg-slate-100 hover:text-green-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-green-400"
+                        href="/wishlist"
+                        class="rounded-xl p-3 transition"
+                        :class="
+                            isActive('/wishlist')
+                                ? 'bg-green-50 text-green-600 dark:bg-green-950/30 dark:text-green-400'
+                                : 'text-slate-600 hover:bg-slate-100 hover:text-green-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-green-400'
+                        "
                         aria-label="Wishlist"
                         title="Wishlist"
                     >
@@ -347,7 +360,12 @@ const toggleTheme = () => {
                     <Link
                         v-if="isAuthenticated"
                         :href="route('orders.index')"
-                        class="rounded-xl p-3 text-slate-600 transition hover:bg-slate-100 hover:text-green-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-green-400"
+                        class="rounded-xl p-3 transition"
+                        :class="
+                            isActive('/orders')
+                                ? 'bg-green-50 text-green-600 dark:bg-green-950/30 dark:text-green-400'
+                                : 'text-slate-600 hover:bg-slate-100 hover:text-green-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-green-400'
+                        "
                         aria-label="My Orders"
                         title="My Orders"
                     >
@@ -370,7 +388,12 @@ const toggleTheme = () => {
                     <!-- Cart -->
                     <Link
                         :href="route('cart.index')"
-                        class="relative rounded-xl p-3 text-slate-600 transition hover:bg-slate-100 hover:text-green-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-green-400"
+                        class="relative rounded-xl p-3 transition"
+                        :class="
+                            isActive('/cart')
+                                ? 'bg-green-50 text-green-600 dark:bg-green-950/30 dark:text-green-400'
+                                : 'text-slate-600 hover:bg-slate-100 hover:text-green-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-green-400'
+                        "
                         aria-label="Shopping cart"
                         title="Shopping cart"
                     >
@@ -427,7 +450,12 @@ const toggleTheme = () => {
                     <template v-else>
                         <Link
                             href="/profile"
-                            class="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-green-600 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-green-400"
+                            class="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition"
+                            :class="
+                                isActive('/profile')
+                                    ? 'bg-green-50 text-green-600 dark:bg-green-950/30 dark:text-green-400'
+                                    : 'text-slate-700 hover:bg-slate-100 hover:text-green-600 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-green-400'
+                            "
                         >
                             <span
                                 class="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 text-xs font-bold text-green-700 dark:bg-green-900/40 dark:text-green-400"
@@ -498,27 +526,46 @@ const toggleTheme = () => {
                 <div
                     class="mx-auto flex h-12 max-w-7xl items-center gap-8 px-4 sm:px-6 lg:px-8"
                 >
+                    <!-- Home -->
                     <Link
                         href="/"
-                        class="text-sm font-semibold text-green-600"
+                        class="text-sm font-medium transition"
+                        :class="
+                            isActive('/')
+                                ? 'font-semibold text-green-600 dark:text-green-400'
+                                : 'text-slate-600 hover:text-green-600 dark:text-slate-300 dark:hover:text-green-400'
+                        "
                     >
                         Home
                     </Link>
 
+                    <!-- Shop -->
                     <Link
                         href="/shop"
-                        class="text-sm font-medium text-slate-600 transition hover:text-green-600 dark:text-slate-300 dark:hover:text-green-400"
+                        class="text-sm font-medium transition"
+                        :class="
+                            isActive('/shop')
+                                ? 'font-semibold text-green-600 dark:text-green-400'
+                                : 'text-slate-600 hover:text-green-600 dark:text-slate-300 dark:hover:text-green-400'
+                        "
                     >
                         Shop
                     </Link>
 
+                    <!-- Categories -->
                     <Link
                         href="/categories"
-                        class="text-sm font-medium text-slate-600 transition hover:text-green-600 dark:text-slate-300 dark:hover:text-green-400"
+                        class="text-sm font-medium transition"
+                        :class="
+                            isActive('/categories')
+                                ? 'font-semibold text-green-600 dark:text-green-400'
+                                : 'text-slate-600 hover:text-green-600 dark:text-slate-300 dark:hover:text-green-400'
+                        "
                     >
                         Categories
                     </Link>
 
+                    <!-- Health & Wellness -->
                     <Link
                         href="/shop"
                         class="text-sm font-medium text-slate-600 transition hover:text-green-600 dark:text-slate-300 dark:hover:text-green-400"
@@ -526,21 +573,34 @@ const toggleTheme = () => {
                         Health & Wellness
                     </Link>
 
+                    <!-- Prescription -->
                     <Link
                         href="/prescriptions"
-                        class="text-sm font-medium text-slate-600 transition hover:text-green-600 dark:text-slate-300 dark:hover:text-green-400"
+                        class="text-sm font-medium transition"
+                        :class="
+                            isActive('/prescriptions')
+                                ? 'font-semibold text-green-600 dark:text-green-400'
+                                : 'text-slate-600 hover:text-green-600 dark:text-slate-300 dark:hover:text-green-400'
+                        "
                     >
                         Prescription
                     </Link>
 
+                    <!-- Wishlist -->
                     <Link
                         v-if="isAuthenticated"
-                        :href="route('wishlist.index')"
-                        class="text-sm font-medium text-slate-600 transition hover:text-green-600 dark:text-slate-300 dark:hover:text-green-400"
+                        href="/wishlist"
+                        class="text-sm font-medium transition"
+                        :class="
+                            isActive('/wishlist')
+                                ? 'font-semibold text-green-600 dark:text-green-400'
+                                : 'text-slate-600 hover:text-green-600 dark:text-slate-300 dark:hover:text-green-400'
+                        "
                     >
                         Wishlist
                     </Link>
 
+                    <!-- About -->
                     <a
                         href="#"
                         class="text-sm font-medium text-slate-600 transition hover:text-green-600 dark:text-slate-300 dark:hover:text-green-400"
@@ -548,6 +608,7 @@ const toggleTheme = () => {
                         About
                     </a>
 
+                    <!-- Contact -->
                     <a
                         href="#"
                         class="text-sm font-medium text-slate-600 transition hover:text-green-600 dark:text-slate-300 dark:hover:text-green-400"
@@ -602,42 +663,67 @@ const toggleTheme = () => {
                         </button>
                     </form>
 
+                    <!-- Mobile Home -->
                     <Link
                         href="/"
                         @click="closeMobileMenu"
-                        class="block rounded-lg bg-green-50 px-4 py-3 text-sm font-semibold text-green-700 dark:bg-green-950/30 dark:text-green-400"
+                        class="block rounded-lg px-4 py-3 text-sm font-medium transition"
+                        :class="
+                            isActive('/')
+                                ? 'bg-green-50 font-semibold text-green-700 dark:bg-green-950/30 dark:text-green-400'
+                                : 'text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900'
+                        "
                     >
                         Home
                     </Link>
 
+                    <!-- Mobile Shop -->
                     <Link
                         href="/shop"
                         @click="closeMobileMenu"
-                        class="block rounded-lg px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900"
+                        class="block rounded-lg px-4 py-3 text-sm font-medium transition"
+                        :class="
+                            isActive('/shop')
+                                ? 'bg-green-50 font-semibold text-green-700 dark:bg-green-950/30 dark:text-green-400'
+                                : 'text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900'
+                        "
                     >
                         Shop
                     </Link>
 
+                    <!-- Mobile Categories -->
                     <Link
                         href="/categories"
                         @click="closeMobileMenu"
-                        class="block rounded-lg px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900"
+                        class="block rounded-lg px-4 py-3 text-sm font-medium transition"
+                        :class="
+                            isActive('/categories')
+                                ? 'bg-green-50 font-semibold text-green-700 dark:bg-green-950/30 dark:text-green-400'
+                                : 'text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900'
+                        "
                     >
                         Categories
                     </Link>
 
+                    <!-- Mobile Health & Wellness -->
                     <Link
                         href="/shop"
                         @click="closeMobileMenu"
-                        class="block rounded-lg px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900"
+                        class="block rounded-lg px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900"
                     >
                         Health & Wellness
                     </Link>
 
+                    <!-- Mobile Prescription -->
                     <Link
                         href="/prescriptions"
                         @click="closeMobileMenu"
-                        class="block rounded-lg px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900"
+                        class="block rounded-lg px-4 py-3 text-sm font-medium transition"
+                        :class="
+                            isActive('/prescriptions')
+                                ? 'bg-green-50 font-semibold text-green-700 dark:bg-green-950/30 dark:text-green-400'
+                                : 'text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900'
+                        "
                     >
                         Prescription
                     </Link>
@@ -645,9 +731,14 @@ const toggleTheme = () => {
                     <!-- Mobile Wishlist -->
                     <Link
                         v-if="isAuthenticated"
-                        :href="route('wishlist.index')"
+                        href="/wishlist"
                         @click="closeMobileMenu"
-                        class="flex items-center rounded-lg px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900"
+                        class="flex items-center rounded-lg px-4 py-3 text-sm font-medium transition"
+                        :class="
+                            isActive('/wishlist')
+                                ? 'bg-green-50 font-semibold text-green-700 dark:bg-green-950/30 dark:text-green-400'
+                                : 'text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900'
+                        "
                     >
                         <svg
                             class="mr-3 h-5 w-5"
@@ -671,7 +762,12 @@ const toggleTheme = () => {
                     <Link
                         :href="route('cart.index')"
                         @click="closeMobileMenu"
-                        class="flex items-center justify-between rounded-lg px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900"
+                        class="flex items-center justify-between rounded-lg px-4 py-3 text-sm font-medium transition"
+                        :class="
+                            isActive('/cart')
+                                ? 'bg-green-50 font-semibold text-green-700 dark:bg-green-950/30 dark:text-green-400'
+                                : 'text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900'
+                        "
                     >
                         <span>Shopping Cart</span>
 
@@ -688,11 +784,17 @@ const toggleTheme = () => {
                         v-if="isAuthenticated"
                         :href="route('orders.index')"
                         @click="closeMobileMenu"
-                        class="flex items-center justify-between rounded-lg px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900"
+                        class="flex items-center justify-between rounded-lg px-4 py-3 text-sm font-medium transition"
+                        :class="
+                            isActive('/orders')
+                                ? 'bg-green-50 font-semibold text-green-700 dark:bg-green-950/30 dark:text-green-400'
+                                : 'text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900'
+                        "
                     >
                         <span>My Orders</span>
                     </Link>
 
+                    <!-- About -->
                     <a
                         href="#"
                         class="block rounded-lg px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900"
@@ -700,6 +802,7 @@ const toggleTheme = () => {
                         About
                     </a>
 
+                    <!-- Contact -->
                     <a
                         href="#"
                         class="block rounded-lg px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900"

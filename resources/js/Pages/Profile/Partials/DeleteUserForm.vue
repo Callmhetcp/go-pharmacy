@@ -5,6 +5,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import Modal from '@/Components/Modal.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
+
 import { useForm } from '@inertiajs/vue3';
 import { nextTick, ref } from 'vue';
 
@@ -43,7 +44,6 @@ const deleteUser = () => {
 
 const closeModal = () => {
     confirmingUserDeletion.value = false;
-
     form.clearErrors();
     form.reset();
 };
@@ -51,14 +51,16 @@ const closeModal = () => {
 
 <template>
     <div>
-        <p class="max-w-2xl text-sm leading-6 text-slate-500">
+        <p
+            class="max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400"
+        >
             Deleting your account will permanently remove your Go Pharmacy
             account and associated information. This action cannot be undone.
         </p>
 
         <button
             type="button"
-            class="mt-5 rounded-xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+            class="mt-5 rounded-xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-100 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950/50"
             @click="confirmUserDeletion"
         >
             Delete My Account
@@ -68,9 +70,12 @@ const closeModal = () => {
             :show="confirmingUserDeletion"
             @close="closeModal"
         >
-            <div class="p-6">
+            <div
+                class="bg-white p-6 dark:bg-slate-900"
+            >
+                <!-- Warning Icon -->
                 <div
-                    class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-red-600"
+                    class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400"
                 >
                     <svg
                         class="h-6 w-6"
@@ -87,20 +92,27 @@ const closeModal = () => {
                     </svg>
                 </div>
 
-                <h2 class="mt-5 text-lg font-bold text-slate-900">
+                <!-- Title -->
+                <h2
+                    class="mt-5 text-lg font-bold text-slate-900 dark:text-white"
+                >
                     Delete your account?
                 </h2>
 
-                <p class="mt-2 text-sm leading-6 text-slate-500">
+                <!-- Description -->
+                <p
+                    class="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400"
+                >
                     This will permanently delete your Go Pharmacy account.
                     Enter your password below to confirm.
                 </p>
 
+                <!-- Password -->
                 <div class="mt-6">
                     <InputLabel
                         for="delete_password"
                         value="Password"
-                        class="text-sm font-semibold text-slate-700"
+                        class="text-sm font-semibold text-slate-700 dark:text-slate-300"
                     />
 
                     <TextInput
@@ -108,8 +120,9 @@ const closeModal = () => {
                         ref="passwordInput"
                         v-model="form.password"
                         type="password"
-                        class="mt-2 block w-full rounded-xl border-slate-200 focus:border-red-500 focus:ring-red-500"
+                        class="mt-2 block w-full rounded-xl border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-red-500 focus:ring-red-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-500"
                         placeholder="Enter your password"
+                        autocomplete="current-password"
                         @keyup.enter="deleteUser"
                     />
 
@@ -119,9 +132,13 @@ const closeModal = () => {
                     />
                 </div>
 
-                <div class="mt-6 flex justify-end gap-3">
+                <!-- Actions -->
+                <div
+                    class="mt-6 flex flex-wrap justify-end gap-3"
+                >
                     <SecondaryButton
                         class="rounded-xl"
+                        :disabled="form.processing"
                         @click="closeModal"
                     >
                         Cancel
@@ -129,11 +146,18 @@ const closeModal = () => {
 
                     <DangerButton
                         class="rounded-xl"
-                        :class="{ 'opacity-50': form.processing }"
+                        :class="{
+                            'cursor-not-allowed opacity-50':
+                                form.processing,
+                        }"
                         :disabled="form.processing"
                         @click="deleteUser"
                     >
-                        Delete Account
+                        {{
+                            form.processing
+                                ? 'Deleting...'
+                                : 'Delete Account'
+                        }}
                     </DangerButton>
                 </div>
             </div>
