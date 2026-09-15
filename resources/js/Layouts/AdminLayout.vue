@@ -106,6 +106,12 @@ const navigation = [
         href: '/admin/customers',
         icon: 'customers',
     },
+
+    {
+        label: 'Pharmacist Conversations',
+        href: '/admin/ai/conversations',
+        icon: 'pharmacist',
+    },
     {
         label: 'Reports',
         href: '/admin/reports',
@@ -470,6 +476,27 @@ const logout = () => {
                                     stroke-linejoin="round"
                                     stroke-width="1.8"
                                     d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m9-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm6 2a3 3 0 0 1 3 3v1m-3-8a3 3 0 1 0 0-6"
+                                />
+                            </svg>
+
+                            <svg
+                                v-else-if="item.icon === 'pharmacist'"
+                                class="h-5 w-5 shrink-0"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M9 12h6m-3-3v6m-7 7h10a2 2 0 0 0 2-2v-6.5a2 2 0 0 0-.586-1.414l-5.5-5.5A2 2 0 0 0 9.5 6H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2Z"
+                                />
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M15 4h2a2 2 0 0 1 2 2v3"
                                 />
                             </svg>
 

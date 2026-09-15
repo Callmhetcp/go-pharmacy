@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\PurchaseController;
+use App\Http\Controllers\Admin\AiConversationController;
 
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
@@ -525,6 +526,32 @@ Route::middleware(['auth', 'admin'])
             'index',
             'show',
         ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Pharmacist Conversations
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/ai/conversations', [
+            AiConversationController::class,
+            'index',
+        ])->name('ai.conversations.index');
+
+        Route::get('/ai/conversations/{conversation}', [
+            AiConversationController::class,
+            'show',
+        ])->name('ai.conversations.show');
+
+        Route::post('/ai/conversations/{conversation}/reply', [
+            AiConversationController::class,
+            'reply',
+        ])->name('ai.conversations.reply');
+
+        Route::post('/ai/conversations/{conversation}/end', [
+            AiConversationController::class,
+            'end',
+        ])->name('ai.conversations.end');
 
 
         /*

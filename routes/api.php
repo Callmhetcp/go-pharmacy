@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\WishlistController;
 use App\Http\Controllers\Api\V1\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Api\V1\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Api\V1\Admin\AiConversationController as AdminAiConversationController;
 use App\Http\Controllers\Api\V1\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Api\V1\Admin\PaymentController as AdminPaymentController;
 use App\Http\Controllers\Api\V1\Admin\CustomerController as AdminCustomerController;
@@ -51,6 +52,11 @@ Route::prefix('v1')->group(function () {
     */
 
     Route::middleware('web')->group(function () {
+        Route::get('/ai/conversation', [
+            AiController::class,
+            'conversation',
+        ]);
+
         Route::post('/ai/chat', [
             AiController::class,
             'chat',
@@ -697,6 +703,27 @@ Route::prefix('v1')->group(function () {
                 AdminReportController::class,
                 'index',
             ])->name('reports.index');
+
+            /*
+            |--------------------------------------------------------------------------
+            | AI Pharmacist Conversations
+            |--------------------------------------------------------------------------
+            */
+
+            Route::get('/ai/conversations', [
+                AdminAiConversationController::class,
+                'index',
+            ])->name('ai.conversations.index');
+
+            Route::get('/ai/conversations/{conversation}', [
+                AdminAiConversationController::class,
+                'show',
+            ])->name('ai.conversations.show');
+
+            Route::post('/ai/conversations/{conversation}/messages', [
+                AdminAiConversationController::class,
+                'storeMessage',
+            ])->name('ai.conversations.messages.store');
 
 
 

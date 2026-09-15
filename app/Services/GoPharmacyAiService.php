@@ -105,6 +105,160 @@ public function searchProducts(array $filters): Collection
         ->get();
 }
 
+public function extractProductFiltersLocally(string $message): array
+{
+    $message = strtolower(trim($message));
+
+    $filters = [
+        'search' => null,
+        'min_price' => null,
+        'max_price' => null,
+        'prescription_required' => null,
+    ];
+
+    /*
+    |--------------------------------------------------------------------------
+    | Detect price limits
+    |--------------------------------------------------------------------------
+    */
+
+    if (preg_match(
+        '/(?:under|below|less than|up to|maximum|max)\s*(?:₦|ngn|n)?\s*([\d,]+)/i',
+        $message,
+        $matches
+    )) {
+        $filters['max_price'] = (float) str_replace(',', '', $matches[1]);
+    }
+
+    if (preg_match(
+        '/(?:over|above|more than|minimum|min)\s*(?:₦|ngn|n)?\s*([\d,]+)/i',
+        $message,
+        $matches
+    )) {
+        $filters['min_price'] = (float) str_replace(',', '', $matches[1]);
+    }
+
+    if (preg_match(
+        '/(?:between)\s*(?:₦|ngn|n)?\s*([\d,]+)\s*(?:and|-)\s*(?:₦|ngn|n)?\s*([\d,]+)/i',
+        $message,
+        $matches
+    )) {
+        $filters['min_price'] = (float) str_replace(',', '', $matches[1]);
+        $filters['max_price'] = (float) str_replace(',', '', $matches[2]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Detect prescription requirement
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        str_contains($message, 'prescription') ||
+        str_contains($message, 'prescription medicine') ||
+        str_contains($message, 'prescription drug')
+    ) {
+        if (
+            str_contains($message, 'without prescription') ||
+            str_contains($message, 'no prescription') ||
+            str_contains($message, 'non prescription') ||
+            str_contains($message, 'non-prescription')
+        ) {
+            $filters['prescription_required'] = false;
+        } else {
+            $filters['prescription_required'] = true;
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Remove common shopping words to identify the search term
+    |--------------------------------------------------------------------------
+    */
+
+    $stopWords = [
+        'do',
+        'does',
+        'did',
+        'you',
+        'have',
+        'has',
+        'is',
+        'are',
+        'there',
+        'any',
+        'some',
+        'the',
+        'a',
+        'an',
+        'for',
+        'me',
+        'please',
+        'can',
+        'could',
+        'i',
+        'we',
+        'want',
+        'need',
+        'available',
+        'show',
+        'find',
+        'give',
+        'get',
+        'buy',
+        'purchase',
+        'under',
+        'below',
+        'less',
+        'than',
+        'over',
+        'above',
+        'more',
+        'up',
+        'to',
+        'between',
+        'and',
+        'with',
+        'without',
+        'prescription',
+        'prescriptions',
+        'medicine',
+        'medicines',
+        'drug',
+        'drugs',
+        'product',
+        'products',
+        'price',
+        'cost',
+        'naira',
+        'ngn',
+        'what',
+        'which',
+        'where',
+        'when',
+        'who',
+        'how',
+    ];
+
+    $search = preg_split('/\s+/', $message);
+
+    $search = collect($search)
+        ->map(fn ($term) => preg_replace('/[^a-z0-9-]/', '', $term))
+        ->reject(fn ($term) => $term === '')
+        ->reject(fn ($term) => in_array($term, $stopWords))
+        ->reject(fn ($term) => is_numeric($term))
+        ->reject(fn ($term) => strlen($term) < 2)
+        ->unique()
+        ->values()
+        ->implode(' ');
+
+    if ($search !== '') {
+        $filters['search'] = $search;
+    }
+
+    return $filters;
+}
+
 public function extractProductFilters(
     string $message,
     GeminiService $gemini

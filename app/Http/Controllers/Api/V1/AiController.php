@@ -3,16 +3,86 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\AiConversation;
 use App\Models\Order;
 use App\Services\GeminiService;
 use App\Services\GoPharmacyAiService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Throwable;
 
 class AiController extends Controller
 {
+    /**
+     * Return the authenticated customer's active AI conversation.
+     */
+    public function conversation(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json([
+                'messages' => [],
+            ]);
+        }
+
+        $conversation = AiConversation::query()
+            ->where('user_id', $user->id)
+            ->whereIn('status', [
+                'active',
+                'waiting_for_pharmacist',
+                'with_pharmacist',
+            ])
+            ->with([
+                'messages' => function ($query) {
+                    $query->orderBy('created_at');
+                },
+            ])
+            ->latest()
+            ->first();
+
+            if ($conversation) {
+            $lastMessage = $conversation->messages->last();
+
+            if (
+                $lastMessage &&
+                $lastMessage->created_at->lte(now()->subHours(24))
+            ) {
+                $conversation->update([
+                    'status' => 'expired',
+                    'assigned_to' => null,
+                ]);
+
+                $conversation = null;
+            }
+        }
+
+        if (!$conversation) {
+            return response()->json([
+                'messages' => [],
+            ]);
+        }
+
+        return response()->json([
+            'status' => $conversation->status,
+
+            'messages' => $conversation->messages
+                ->map(function ($message) {
+                    return [
+                        'role' => $message->sender_type === 'customer'
+                            ? 'user'
+                            : $message->sender_type,
+                        'content' => $message->message,
+                        'created_at' => $message->created_at?->toISOString(),
+                    ];
+                })
+                ->values(),
+        ]);
+    }
+
+    /**
+     * Process a customer's AI chat message.
+     */
     public function chat(
         Request $request,
         GeminiService $gemini,
@@ -22,109 +92,148 @@ class AiController extends Controller
             'message' => ['required', 'string', 'max:2000'],
         ]);
 
+        $user = $request->user();
+        $conversation = null;
+        $handoffRequested = false;
+
+        if ($user) {
+            $conversation = AiConversation::query()
+                ->where('user_id', $user->id)
+                ->whereIn('status', [
+                    'active',
+                    'waiting_for_pharmacist',
+                    'with_pharmacist',
+                ])
+                ->with([
+                    'messages' => function ($query) {
+                        $query->latest('created_at')->limit(1);
+                    },
+                ])
+                ->latest()
+                ->first();
+
+            if ($conversation) {
+                $lastMessage = $conversation->messages->first();
+
+                if (
+                    $lastMessage &&
+                    $lastMessage->created_at->lte(now()->subHours(24))
+                ) {
+                    $conversation->update([
+                        'status' => 'expired',
+                        'assigned_to' => null,
+                    ]);
+
+                    $conversation = null;
+                }
+            }
+        }
+
         try {
             $message = trim($validated['message']);
+
+            /*
+            |--------------------------------------------------------------------------
+            | Pharmacist takeover
+            |--------------------------------------------------------------------------
+            |
+            | Once a pharmacist has taken over the conversation, customer
+            | messages are saved for the pharmacist instead of being sent
+            | through Gemini.
+            |
+            */
+
+            if ($conversation?->status === 'with_pharmacist') {
+                $conversation->messages()->create([
+                    'sender_type' => 'customer',
+                    'sender_id' => $user->id,
+                    'message' => $message,
+                ]);
+
+                return response()->json([
+                    'message' => 'Your message has been sent to the pharmacist.',
+                    'role' => 'system',
+                ]);
+            }
 
             /*
             |--------------------------------------------------------------------------
             | Determine the type of question
             |--------------------------------------------------------------------------
             */
-            $intent = $this->detectIntent($message);
+
+            $intent = $this->detectIntent(
+                $message,
+                $goPharmacyAi
+            );
 
             /*
             |--------------------------------------------------------------------------
-            | Order status requires the authenticated customer's real order data.
+            | Build the answer
             |--------------------------------------------------------------------------
             */
 
             if ($intent === 'order_status') {
-                return response()->json([
-                    'message' => $this->getOrderStatusAnswer($request),
-                ]);
-            }
+                $answer = $this->getOrderStatusAnswer($request);
+            } else {
+                $handoffRequested = $intent === 'pharmacist';
 
-            /*
-            |--------------------------------------------------------------------------
-            | Basic Go Pharmacy guidance does not require Gemini.
-            |--------------------------------------------------------------------------
-            */
+                /*
+                |--------------------------------------------------------------------------
+                | Basic Go Pharmacy guidance does not require Gemini.
+                |--------------------------------------------------------------------------
+                */
 
-            $directAnswer = $this->getDirectAnswer($intent);
+                $directAnswer = $this->getDirectAnswer($intent);
 
-            if ($directAnswer !== null) {
-                return response()->json([
-                    'message' => $directAnswer,
-                ]);
-            }
+                if ($directAnswer !== null) {
+                    $answer = $directAnswer;
+                } elseif ($intent === 'product') {
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Product questions use the Go Pharmacy database first.
+                    |--------------------------------------------------------------------------
+                    */
 
-            /*
-            |--------------------------------------------------------------------------
-            | Product questions
-            |--------------------------------------------------------------------------
-            |
-            | Product questions still use the database and Gemini because Gemini
-            | helps turn the database results into a natural customer response.
-            |
-            */
-            $products = collect();
+                    $filters = $goPharmacyAi->extractProductFiltersLocally(
+                        $message
+                    );
 
-            if ($intent === 'product') {
-                $filters = $goPharmacyAi->extractProductFilters(
-                    $message,
-                    $gemini
-                );
-
-                if (!empty($filters['search'])) {
                     $products = $goPharmacyAi->searchProducts($filters);
-                }
 
-                $productContext = $products->isNotEmpty()
-                    ? $goPharmacyAi->buildProductContext($products)
-                    : 'No matching products were found in the Go Pharmacy database.';
+                    if ($products->isEmpty()) {
+                        $answer = 'I could not find a matching product in the current Go Pharmacy catalog.';
+                    } else {
+                        $productLines = $products
+                            ->map(function ($product) {
+                                $availableQuantity =
+                                    $product->inventory?->available_quantity ?? 0;
 
-                $prompt = <<<PROMPT
-You are the AI customer assistant for Go Pharmacy, a modern pharmacy and healthcare platform in Nigeria.
+                                $prescription = $product->requires_prescription
+                                    ? 'Prescription required'
+                                    : 'No prescription required';
 
-The customer asked:
+                                return $product->name
+                                    . ' — ₦'
+                                    . number_format((float) $product->price, 2)
+                                    . ' — '
+                                    . $prescription
+                                    . ' — '
+                                    . $availableQuantity
+                                    . ' available';
+                            })
+                            ->implode("\n");
 
-{$message}
+                        $answer = "Here are the matching products in the Go Pharmacy catalog:\n\n{$productLines}";
+                    }
+                } else {
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Other questions can use Gemini when available.
+                    |--------------------------------------------------------------------------
+                    */
 
-The following information comes directly from the Go Pharmacy database:
-
-{$productContext}
-
-Answer the customer clearly, professionally, and briefly.
-
-Important rules:
-
-- Only state product information that appears in the provided Go Pharmacy data.
-- Do not invent products, prices, stock levels, prescription requirements, or services.
-- If no matching products were found, clearly say that no matching products were found in the current Go Pharmacy catalog.
-- If products are found, mention their actual names and prices from the database.
-- Respect any budget specified by the customer.
-- Do not diagnose the customer.
-- Do not recommend medicine based on a diagnosis.
-- Do not tell customers to start, stop, or change medication.
-- For medical advice, recommend speaking with a pharmacist or qualified healthcare professional.
-- Do not expose internal system details.
-- Keep the response concise and helpful.
-
-PROMPT;
-
-                $answer = $gemini->generate($prompt);
-
-                return response()->json([
-                    'message' => $answer,
-                ]);
-            }
-
-            /*
-            |--------------------------------------------------------------------------
-            | Other questions can use Gemini when available.
-            |--------------------------------------------------------------------------
-            */
-            $prompt = <<<PROMPT
+                    $prompt = <<<PROMPT
 You are the AI customer assistant for Go Pharmacy, a modern pharmacy and healthcare platform in Nigeria.
 
 The customer asked:
@@ -143,10 +252,44 @@ Important rules:
 - For medical advice, recommend speaking with a pharmacist or qualified healthcare professional.
 - If you do not have enough confirmed information to answer a Go Pharmacy-specific question, tell the customer to contact Go Pharmacy for confirmation.
 - Keep the response concise and helpful.
-
 PROMPT;
 
-            $answer = $gemini->generate($prompt);
+                    $answer = $gemini->generate($prompt);
+                }
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Save the conversation for authenticated customers.
+            |--------------------------------------------------------------------------
+            */
+
+            if ($user) {
+                if (!$conversation) {
+                    $conversation = AiConversation::create([
+                        'user_id' => $user->id,
+                        'status' => 'active',
+                    ]);
+                }
+
+                $conversation->messages()->create([
+                    'sender_type' => 'customer',
+                    'sender_id' => $user->id,
+                    'message' => $message,
+                ]);
+
+                $conversation->messages()->create([
+                    'sender_type' => 'assistant',
+                    'sender_id' => null,
+                    'message' => $answer,
+                ]);
+
+                if ($handoffRequested) {
+                    $conversation->update([
+                        'status' => 'waiting_for_pharmacist',
+                    ]);
+                }
+            }
 
             return response()->json([
                 'message' => $answer,
@@ -161,11 +304,11 @@ PROMPT;
     }
 
     /**
- * Return the authenticated customer's latest order status.
- */
-private function getOrderStatusAnswer(Request $request): string
+     * Return the authenticated customer's latest order status.
+     */
+    private function getOrderStatusAnswer(Request $request): string
     {
-        $user = Auth::guard('web')->user();
+        $user = $request->user();
 
         if (!$user) {
             return 'Please log in to your Go Pharmacy account so I can check your order status.';
@@ -203,11 +346,26 @@ private function getOrderStatusAnswer(Request $request): string
     /**
      * Detect the customer's question type without using Gemini.
      */
-    private function detectIntent(string $message): string
-    {
+    private function detectIntent(
+        string $message,
+        GoPharmacyAiService $goPharmacyAi
+    ): string {
         $message = strtolower($message);
 
         $intents = [
+            'pharmacist' => [
+                'speak to a pharmacist',
+                'talk to a pharmacist',
+                'contact a pharmacist',
+                'connect me to a pharmacist',
+                'connect me with a pharmacist',
+                'i want a pharmacist',
+                'i need a pharmacist',
+                'ask a pharmacist',
+                'human pharmacist',
+                'real pharmacist',
+            ],
+
             'ordering' => [
                 'how do i order',
                 'how do i place an order',
@@ -236,18 +394,18 @@ private function getOrderStatusAnswer(Request $request): string
             ],
 
             'delivery' => [
-            'delivery',
-            'deliver',
-            'shipping',
-            'ship',
-            'delivery fee',
-            'delivery cost',
-            'how much is delivery',
-            'how long will delivery',
-            'delivery time',
-            'delivery location',
-            'where do you deliver',
-        ],
+                'delivery',
+                'deliver',
+                'shipping',
+                'ship',
+                'delivery fee',
+                'delivery cost',
+                'how much is delivery',
+                'how long will delivery',
+                'delivery time',
+                'delivery location',
+                'where do you deliver',
+            ],
 
             'payment' => [
                 'payment',
@@ -267,24 +425,23 @@ private function getOrderStatusAnswer(Request $request): string
             ],
 
             'cart' => [
-            'add to cart',
-            'add it to my cart',
-            'add product to cart',
-            'add item to cart',
-            'remove from cart',
-            'remove it from cart',
-            'remove item from cart',
-            'remove product from cart',
-            'change quantity',
-            'update quantity',
-            'increase quantity',
-            'decrease quantity',
-            'my cart',
-            'shopping cart',
-            'proceed to checkout',
-            'go to checkout',
-        ],
-        
+                'add to cart',
+                'add it to my cart',
+                'add product to cart',
+                'add item to cart',
+                'remove from cart',
+                'remove it from my cart',
+                'remove item from cart',
+                'remove product from cart',
+                'change quantity',
+                'update quantity',
+                'increase quantity',
+                'decrease quantity',
+                'my cart',
+                'shopping cart',
+                'proceed to checkout',
+                'go to checkout',
+            ],
         ];
 
         foreach ($intents as $intent => $keywords) {
@@ -305,7 +462,7 @@ private function getOrderStatusAnswer(Request $request): string
             str_contains($message, 'price') ||
             str_contains($message, 'cost') ||
             str_contains($message, 'stock') ||
-            $this->containsProductQuestion($message)
+            $goPharmacyAi->isProductQuestion($message)
         ) {
             return 'product';
         }
@@ -329,23 +486,9 @@ private function getOrderStatusAnswer(Request $request): string
 
             'payment' => 'After you complete checkout, your order is created and you are taken to the payment page. Your order will show as awaiting payment, but online payment is not currently available. No payment is taken at this stage. Payment processing will be enabled once Go Pharmacy approves and configures a payment provider.',
 
+            'pharmacist' => 'I can connect this conversation to a Go Pharmacy pharmacist. Your request has been sent for pharmacist assistance. Please keep this chat open while you wait for a response.',
+
             default => null,
         };
-    }
-
-    /**
-     * Check whether the message contains a known Go Pharmacy product.
-     */
-    private function containsProductQuestion(string $message): bool
-    {
-        return \App\Models\Product::query()
-            ->where('is_active', true)
-            ->where(function ($query) use ($message) {
-                $query
-                    ->whereRaw('LOWER(name) LIKE ?', ['%' . $message . '%'])
-                    ->orWhereRaw('LOWER(generic_name) LIKE ?', ['%' . $message . '%'])
-                    ->orWhereRaw('LOWER(brand) LIKE ?', ['%' . $message . '%']);
-            })
-            ->exists();
     }
 }
