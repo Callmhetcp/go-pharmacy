@@ -713,7 +713,7 @@ The source code is published for portfolio and demonstration purposes. Unauthori
 
 **Obinna Wisdom Ojo**
 
-* GitHub: [@Callmhetcp4](https://github.com/Callmhetcp4)
+* GitHub: [@Callmhetcp4](https://github.com/Callmhetcp)
 * LinkedIn: [obinnaojo](https://www.linkedin.com/in/obinnaojo/)
 
 ---
