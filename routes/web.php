@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\PurchaseController;
 use App\Http\Controllers\Admin\AiConversationController;
+use App\Http\Controllers\Api\V1\WishlistController as ApiWishlistController;
 
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
@@ -26,6 +27,7 @@ use App\Http\Controllers\PrescriptionController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\Auth\GoogleController;
+use App\Http\Controllers\WishlistController;
 
 use App\Models\Advertisement;
 use App\Models\Category;
@@ -290,7 +292,31 @@ Route::middleware('maintenance')->group(function () {
             'destroy',
         ])->name('profile.destroy');
 
+    /*
+        |--------------------------------------------------------------------------
+        | Customer Wishlist
+        |--------------------------------------------------------------------------
+        */
 
+        Route::get('/wishlist', [
+            WishlistController::class,
+            'index',
+        ])->name('wishlist.index');
+
+        Route::post('/wishlist/{product}', [
+            ApiWishlistController::class,
+            'store',
+        ])->name('wishlist.store');
+
+        Route::delete('/wishlist/{product}', [
+            ApiWishlistController::class,
+            'destroy',
+        ])->name('wishlist.destroy');
+
+        Route::delete('/wishlist', [
+            ApiWishlistController::class,
+            'clear',
+        ])->name('wishlist.clear');
         /*
         |--------------------------------------------------------------------------
         | Customer Payments

@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 
 const props = defineProps({
@@ -10,6 +10,9 @@ const props = defineProps({
 });
 
 const products = computed(() => props.products);
+
+const wishlistProductIds = ref(new Set());
+const wishlistLoadingProductId = ref(null);
 
 const formatPrice = (price) => {
     return Number(price ?? 0).toLocaleString('en-NG', {
@@ -47,7 +50,8 @@ const isLowStock = (product) => {
 
     return (
         quantity > 0 &&
-        quantity <= Number(inventory.minimum_stock ?? product.minimum_stock ?? 0)
+        quantity <=
+            Number(inventory.minimum_stock ?? product.minimum_stock ?? 0)
     );
 };
 
@@ -103,6 +107,106 @@ const productImage = (product) => {
     return `/storage/${product.image}`;
 };
 
+/*
+|--------------------------------------------------------------------------
+| Wishlist
+|--------------------------------------------------------------------------
+*/
+
+const isWishlisted = (productId) => {
+    return wishlistProductIds.value.has(productId);
+};
+
+const isWishlistLoading = (productId) => {
+    return wishlistLoadingProductId.value === productId;
+};
+
+const loadWishlist = async () => {
+    try {
+        const response = await fetch('/wishlist', {
+            headers: {
+                Accept: 'application/json',
+            },
+            credentials: 'same-origin',
+        });
+
+        /*
+         * Guests are not expected to have a wishlist.
+         */
+        if (response.status === 401 || response.status === 403) {
+            return;
+        }
+
+        if (!response.ok) {
+            return;
+        }
+
+        const data = await response.json();
+
+        wishlistProductIds.value = new Set(
+            (data.data?.items ?? [])
+                .map((item) => item.product?.id)
+                .filter(Boolean),
+        );
+    } catch (error) {
+        console.error('Failed to load wishlist.', error);
+    }
+};
+
+const toggleWishlist = async (product) => {
+    if (isWishlistLoading(product.id)) {
+        return;
+    }
+
+    wishlistLoadingProductId.value = product.id;
+
+    const wishlisted = isWishlisted(product.id);
+
+    try {
+        const response = await fetch(`/wishlist/${product.id}`, {
+            method: wishlisted ? 'DELETE' : 'POST',
+            headers: {
+                Accept: 'application/json',
+                'X-CSRF-TOKEN':
+                    document
+                        .querySelector('meta[name="csrf-token"]')
+                        ?.getAttribute('content') ?? '',
+            },
+            credentials: 'same-origin',
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error(
+                data.message ?? 'Wishlist request failed.',
+            );
+
+            return;
+        }
+
+        const updatedIds = new Set(wishlistProductIds.value);
+
+        if (wishlisted) {
+            updatedIds.delete(product.id);
+        } else {
+            updatedIds.add(product.id);
+        }
+
+        wishlistProductIds.value = updatedIds;
+    } catch (error) {
+        console.error('Wishlist request failed.', error);
+    } finally {
+        wishlistLoadingProductId.value = null;
+    }
+};
+
+/*
+|--------------------------------------------------------------------------
+| Cart
+|--------------------------------------------------------------------------
+*/
+
 const addToCart = (product) => {
     if (!isInStock(product)) {
         return;
@@ -119,6 +223,10 @@ const addToCart = (product) => {
         },
     );
 };
+
+onMounted(() => {
+    loadWishlist();
+});
 </script>
 
 <template>
@@ -249,12 +357,51 @@ const addToCart = (product) => {
 
                         <button
                             type="button"
-                            class="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-green-200 hover:bg-green-50 hover:text-green-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:border-green-700 dark:hover:bg-green-950 dark:hover:text-green-400"
-                            :aria-label="`Add ${product.name} to wishlist`"
+                            :disabled="isWishlistLoading(product.id)"
+                            :aria-label="
+                                isWishlisted(product.id)
+                                    ? `Remove ${product.name} from wishlist`
+                                    : `Add ${product.name} to wishlist`
+                            "
+                            :aria-pressed="isWishlisted(product.id)"
+                            class="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full border shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60"
+                            :class="
+                                isWishlisted(product.id)
+                                    ? 'border-green-200 bg-green-50 text-green-600 dark:border-green-700 dark:bg-green-950 dark:text-green-400'
+                                    : 'border-slate-200 bg-white text-slate-500 hover:border-green-200 hover:bg-green-50 hover:text-green-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:border-green-700 dark:hover:bg-green-950 dark:hover:text-green-400'
+                            "
+                            @click.stop="toggleWishlist(product)"
                         >
                             <svg
-                                class="h-5 w-5"
+                                v-if="isWishlistLoading(product.id)"
+                                class="h-5 w-5 animate-spin"
                                 fill="none"
+                                viewBox="0 0 24 24"
+                            >
+                                <circle
+                                    class="opacity-25"
+                                    cx="12"
+                                    cy="12"
+                                    r="9"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                />
+
+                                <path
+                                    class="opacity-75"
+                                    fill="currentColor"
+                                    d="M12 3a9 9 0 0 1 9 9h-2a7 7 0 0 0-7-7V3Z"
+                                />
+                            </svg>
+
+                            <svg
+                                v-else
+                                class="h-5 w-5"
+                                :fill="
+                                    isWishlisted(product.id)
+                                        ? 'currentColor'
+                                        : 'none'
+                                "
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
                             >

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 import CustomerLayout from '@/Layouts/CustomerLayout.vue';
 
@@ -8,12 +8,10 @@ const props = defineProps({
         type: Object,
         required: true,
     },
-
     categories: {
         type: Array,
         default: () => [],
     },
-
     filters: {
         type: Object,
         default: () => ({}),
@@ -28,6 +26,10 @@ const sort = ref(props.filters.sort ?? '');
 const showFilters = ref(false);
 const addingProduct = ref(null);
 
+const wishlistIds = ref(new Set());
+const wishlistLoading = ref(true);
+const wishlistProcessing = ref(null);
+
 const applyFilters = () => {
     router.get(
         route('shop.index'),
@@ -40,7 +42,7 @@ const applyFilters = () => {
         {
             preserveState: true,
             preserveScroll: true,
-        }
+        },
     );
 };
 
@@ -56,13 +58,11 @@ const clearFilters = () => {
         {
             preserveState: true,
             preserveScroll: true,
-        }
+        },
     );
 };
 
-const productCount = computed(
-    () => props.products.total ?? 0
-);
+const productCount = computed(() => props.products.total ?? 0);
 
 const formatPrice = (price) => {
     return new Intl.NumberFormat('en-NG', {
@@ -111,21 +111,112 @@ const addToCart = (product) => {
         },
         {
             preserveScroll: true,
-
             onFinish: () => {
                 addingProduct.value = null;
             },
-        }
+        },
     );
 };
+
+const csrfToken = () => {
+    return document
+        .querySelector('meta[name="csrf-token"]')
+        ?.getAttribute('content');
+};
+
+const loadWishlist = async () => {
+    wishlistLoading.value = true;
+
+    try {
+        const response = await fetch(route('wishlist.index'), {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                Accept: 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            wishlistIds.value = new Set();
+            return;
+        }
+
+        const data = await response.json();
+
+        const ids = (data.data?.items ?? [])
+            .map((item) => item.product?.id)
+            .filter(Boolean);
+
+        wishlistIds.value = new Set(ids);
+    } catch (error) {
+        wishlistIds.value = new Set();
+    } finally {
+        wishlistLoading.value = false;
+    }
+};
+
+const isWishlisted = (product) => {
+    return wishlistIds.value.has(product.id);
+};
+
+const toggleWishlist = async (product) => {
+    if (wishlistProcessing.value === product.id) {
+        return;
+    }
+
+    wishlistProcessing.value = product.id;
+
+    const currentlyWishlisted = isWishlisted(product);
+
+    try {
+        const response = await fetch(
+            currentlyWishlisted
+                ? route('wishlist.destroy', product.id)
+                : route('wishlist.store', product.id),
+            {
+                method: currentlyWishlisted ? 'DELETE' : 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': csrfToken(),
+                },
+            },
+        );
+
+        if (response.status === 401 || response.status === 419) {
+            router.visit(route('login'));
+            return;
+        }
+
+        if (!response.ok) {
+            return;
+        }
+
+        const updatedIds = new Set(wishlistIds.value);
+
+        if (currentlyWishlisted) {
+            updatedIds.delete(product.id);
+        } else {
+            updatedIds.add(product.id);
+        }
+
+        wishlistIds.value = updatedIds;
+    } catch (error) {
+        // Keep the current wishlist state when the request fails.
+    } finally {
+        wishlistProcessing.value = null;
+    }
+};
+
+onMounted(() => {
+    loadWishlist();
+});
 </script>
 
 <template>
     <CustomerLayout>
         <div class="min-h-screen bg-slate-50 dark:bg-slate-950">
-
             <!-- Header -->
-
             <section
                 class="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
             >
@@ -180,7 +271,6 @@ const addToCart = (product) => {
             </section>
 
             <!-- Content -->
-
             <section
                 class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8"
             >
@@ -193,9 +283,7 @@ const addToCart = (product) => {
                 </button>
 
                 <div class="grid gap-8 md:grid-cols-[240px_1fr]">
-
                     <!-- Filters -->
-
                     <aside
                         :class="[
                             'h-fit rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900',
@@ -308,7 +396,6 @@ const addToCart = (product) => {
                     </aside>
 
                     <!-- Products -->
-
                     <div>
                         <div
                             class="mb-6 flex items-center justify-between"
@@ -324,6 +411,7 @@ const addToCart = (product) => {
                             </p>
                         </div>
 
+                        <!-- Empty State -->
                         <div
                             v-if="products.data.length === 0"
                             class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-20 text-center dark:border-slate-700 dark:bg-slate-900"
@@ -347,6 +435,7 @@ const addToCart = (product) => {
                             </button>
                         </div>
 
+                        <!-- Product Grid -->
                         <div
                             v-else
                             class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
@@ -356,6 +445,7 @@ const addToCart = (product) => {
                                 :key="product.id"
                                 class="group overflow-hidden rounded-2xl border border-slate-200 bg-white transition duration-300 hover:-translate-y-1 hover:border-green-200 hover:shadow-xl dark:border-slate-800 dark:bg-slate-900"
                             >
+                                <!-- Product Image -->
                                 <div
                                     class="relative flex h-56 items-center justify-center overflow-hidden bg-slate-100 dark:bg-slate-950"
                                 >
@@ -381,6 +471,7 @@ const addToCart = (product) => {
                                         </p>
                                     </div>
 
+                                    <!-- Prescription Badge -->
                                     <span
                                         v-if="product.requires_prescription"
                                         class="absolute left-3 top-3 rounded-full bg-amber-100 px-3 py-1 text-[11px] font-bold text-amber-700"
@@ -388,14 +479,55 @@ const addToCart = (product) => {
                                         Prescription
                                     </span>
 
+                                    <!-- Featured Badge -->
                                     <span
                                         v-if="product.is_featured"
                                         class="absolute right-3 top-3 rounded-full bg-green-600 px-3 py-1 text-[11px] font-bold text-white"
                                     >
                                         Featured
                                     </span>
+
+                                    <!-- Wishlist -->
+                                    <button
+                                        type="button"
+                                        :disabled="
+                                            wishlistLoading ||
+                                            wishlistProcessing === product.id
+                                        "
+                                        :aria-label="
+                                            isWishlisted(product)
+                                                ? `Remove ${product.name} from wishlist`
+                                                : `Add ${product.name} to wishlist`
+                                        "
+                                        class="absolute right-3 top-14 flex h-10 w-10 items-center justify-center rounded-full border shadow-sm backdrop-blur transition disabled:cursor-wait disabled:opacity-60"
+                                        :class="
+                                            isWishlisted(product)
+                                                ? 'border-green-200 bg-green-50 text-green-600 dark:border-green-800 dark:bg-green-950 dark:text-green-400'
+                                                : 'border-slate-200 bg-white text-slate-500 hover:border-green-200 hover:bg-green-50 hover:text-green-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:border-green-700 dark:hover:bg-green-950 dark:hover:text-green-400'
+                                        "
+                                        @click="toggleWishlist(product)"
+                                    >
+                                        <svg
+                                            class="h-5 w-5"
+                                            :fill="
+                                                isWishlisted(product)
+                                                    ? 'currentColor'
+                                                    : 'none'
+                                            "
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="1.8"
+                                                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z"
+                                            />
+                                        </svg>
+                                    </button>
                                 </div>
 
+                                <!-- Details -->
                                 <div class="p-5">
                                     <p
                                         v-if="product.brand"
@@ -463,7 +595,6 @@ const addToCart = (product) => {
                         </div>
 
                         <!-- Pagination -->
-
                         <div
                             v-if="products.links?.length > 3"
                             class="mt-10 flex flex-wrap justify-center gap-2"

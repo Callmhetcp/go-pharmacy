@@ -1,11 +1,11 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
+
 import { useCustomerTheme } from '@/Composables/useCustomerTheme';
 import PharmacyAiChat from '@/Components/Ai/PharmacyAiChat.vue';
 
 const page = usePage();
-
 const mobileMenuOpen = ref(false);
 const { theme, setTheme } = useCustomerTheme();
 
@@ -189,12 +189,10 @@ const toggleTheme = () => {
             class="sticky top-0 z-50 border-b border-slate-200/80 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95"
         >
             <!-- Main Header -->
-
             <div
                 class="mx-auto flex h-20 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8"
             >
                 <!-- Logo -->
-
                 <Link
                     href="/"
                     class="flex shrink-0 items-center"
@@ -208,7 +206,6 @@ const toggleTheme = () => {
                 </Link>
 
                 <!-- Desktop Search -->
-
                 <div class="hidden flex-1 md:block">
                     <form
                         class="relative mx-auto max-w-xl"
@@ -250,10 +247,8 @@ const toggleTheme = () => {
                 </div>
 
                 <!-- Desktop Actions -->
-
                 <div class="hidden items-center gap-1 md:flex">
                     <!-- Theme -->
-
                     <button
                         type="button"
                         @click="toggleTheme"
@@ -262,7 +257,6 @@ const toggleTheme = () => {
                         class="rounded-xl p-3 text-slate-600 transition hover:bg-slate-100 hover:text-green-600 focus:outline-none focus:ring-2 focus:ring-green-500/30 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-green-400"
                     >
                         <!-- System -->
-
                         <svg
                             v-if="theme === 'system'"
                             class="h-5 w-5"
@@ -279,7 +273,6 @@ const toggleTheme = () => {
                                 rx="2"
                                 stroke-width="2"
                             />
-
                             <path
                                 stroke-linecap="round"
                                 stroke-width="2"
@@ -288,7 +281,6 @@ const toggleTheme = () => {
                         </svg>
 
                         <!-- Light -->
-
                         <svg
                             v-else-if="theme === 'light'"
                             class="h-5 w-5"
@@ -303,7 +295,6 @@ const toggleTheme = () => {
                                 r="4"
                                 stroke-width="2"
                             />
-
                             <path
                                 stroke-linecap="round"
                                 stroke-width="2"
@@ -312,7 +303,6 @@ const toggleTheme = () => {
                         </svg>
 
                         <!-- Dark -->
-
                         <svg
                             v-else
                             class="h-5 w-5"
@@ -330,11 +320,12 @@ const toggleTheme = () => {
                     </button>
 
                     <!-- Wishlist -->
-
-                    <button
-                        type="button"
+                    <Link
+                        v-if="isAuthenticated"
+                        :href="route('wishlist.index')"
                         class="rounded-xl p-3 text-slate-600 transition hover:bg-slate-100 hover:text-green-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-green-400"
                         aria-label="Wishlist"
+                        title="Wishlist"
                     >
                         <svg
                             class="h-5 w-5"
@@ -350,10 +341,9 @@ const toggleTheme = () => {
                                 d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z"
                             />
                         </svg>
-                    </button>
+                    </Link>
 
                     <!-- My Orders -->
-
                     <Link
                         v-if="isAuthenticated"
                         :href="route('orders.index')"
@@ -378,11 +368,11 @@ const toggleTheme = () => {
                     </Link>
 
                     <!-- Cart -->
-
                     <Link
                         :href="route('cart.index')"
                         class="relative rounded-xl p-3 text-slate-600 transition hover:bg-slate-100 hover:text-green-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-green-400"
                         aria-label="Shopping cart"
+                        title="Shopping cart"
                     >
                         <svg
                             class="h-5 w-5"
@@ -397,13 +387,11 @@ const toggleTheme = () => {
                                 stroke-width="2"
                                 d="M3 3h2l2.4 11.2a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 1.9-1.4L21 7H6"
                             />
-
                             <circle
                                 cx="10"
                                 cy="20"
                                 r="1.5"
                             />
-
                             <circle
                                 cx="18"
                                 cy="20"
@@ -420,7 +408,6 @@ const toggleTheme = () => {
                     </Link>
 
                     <!-- Authentication -->
-
                     <template v-if="!isAuthenticated">
                         <Link
                             href="/login"
@@ -464,7 +451,6 @@ const toggleTheme = () => {
                 </div>
 
                 <!-- Mobile Menu Button -->
-
                 <button
                     type="button"
                     class="ml-auto rounded-xl p-3 text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 md:hidden"
@@ -498,7 +484,6 @@ const toggleTheme = () => {
                     >
                         <path
                             stroke-linecap="round"
-                            stroke-linejoin="round"
                             stroke-width="2"
                             d="M6 6l12 12M18 6 6 18"
                         />
@@ -507,7 +492,6 @@ const toggleTheme = () => {
             </div>
 
             <!-- Desktop Navigation -->
-
             <nav
                 class="hidden border-t border-slate-100 dark:border-slate-800 md:block"
             >
@@ -549,6 +533,14 @@ const toggleTheme = () => {
                         Prescription
                     </Link>
 
+                    <Link
+                        v-if="isAuthenticated"
+                        :href="route('wishlist.index')"
+                        class="text-sm font-medium text-slate-600 transition hover:text-green-600 dark:text-slate-300 dark:hover:text-green-400"
+                    >
+                        Wishlist
+                    </Link>
+
                     <a
                         href="#"
                         class="text-sm font-medium text-slate-600 transition hover:text-green-600 dark:text-slate-300 dark:hover:text-green-400"
@@ -566,14 +558,12 @@ const toggleTheme = () => {
             </nav>
 
             <!-- Mobile Navigation -->
-
             <div
                 v-if="mobileMenuOpen"
                 class="border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950 md:hidden"
             >
                 <div class="space-y-1 px-4 py-4">
                     <!-- Mobile Search -->
-
                     <form
                         class="relative mb-4"
                         @submit.prevent="search"
@@ -652,6 +642,32 @@ const toggleTheme = () => {
                         Prescription
                     </Link>
 
+                    <!-- Mobile Wishlist -->
+                    <Link
+                        v-if="isAuthenticated"
+                        :href="route('wishlist.index')"
+                        @click="closeMobileMenu"
+                        class="flex items-center rounded-lg px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900"
+                    >
+                        <svg
+                            class="mr-3 h-5 w-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z"
+                            />
+                        </svg>
+
+                        Wishlist
+                    </Link>
+
+                    <!-- Mobile Cart -->
                     <Link
                         :href="route('cart.index')"
                         @click="closeMobileMenu"
@@ -667,6 +683,7 @@ const toggleTheme = () => {
                         </span>
                     </Link>
 
+                    <!-- Mobile Orders -->
                     <Link
                         v-if="isAuthenticated"
                         :href="route('orders.index')"
@@ -691,7 +708,6 @@ const toggleTheme = () => {
                     </a>
 
                     <!-- Mobile Theme -->
-
                     <div
                         class="mt-4 border-t border-slate-200 pt-4 dark:border-slate-800"
                     >
@@ -715,7 +731,6 @@ const toggleTheme = () => {
                     </div>
 
                     <!-- Mobile Authentication -->
-
                     <div
                         class="mt-4 border-t border-slate-200 pt-4 dark:border-slate-800"
                     >
@@ -780,13 +795,11 @@ const toggleTheme = () => {
         </header>
 
         <!-- Page -->
-
         <main>
             <slot />
         </main>
 
         <!-- Footer -->
-
         <footer
             class="border-t border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900"
         >
@@ -797,7 +810,6 @@ const toggleTheme = () => {
                     class="grid gap-10 sm:grid-cols-2 lg:grid-cols-4"
                 >
                     <!-- Brand -->
-
                     <div>
                         <Link
                             href="/"
@@ -813,14 +825,13 @@ const toggleTheme = () => {
                         <p
                             class="mt-4 max-w-xs text-sm leading-6 text-slate-600 dark:text-slate-400"
                         >
-                            Good health. Made simple. Your trusted destination
-                            for medicines, healthcare products and everyday
-                            wellness.
+                            Good health. Made simple. Your trusted
+                            destination for medicines, healthcare products
+                            and everyday wellness.
                         </p>
                     </div>
 
                     <!-- Shop -->
-
                     <div>
                         <h3
                             class="text-sm font-semibold text-slate-900 dark:text-white"
@@ -862,7 +873,6 @@ const toggleTheme = () => {
                     </div>
 
                     <!-- Help -->
-
                     <div>
                         <h3
                             class="text-sm font-semibold text-slate-900 dark:text-white"
@@ -904,7 +914,6 @@ const toggleTheme = () => {
                     </div>
 
                     <!-- Legal -->
-
                     <div>
                         <h3
                             class="text-sm font-semibold text-slate-900 dark:text-white"
@@ -955,7 +964,7 @@ const toggleTheme = () => {
             </div>
         </footer>
 
-        <!-- Go Pharmacy AI Assistant --> 
-         <PharmacyAiChat />
+        <!-- Go Pharmacy AI Assistant -->
+        <PharmacyAiChat />
     </div>
 </template>
