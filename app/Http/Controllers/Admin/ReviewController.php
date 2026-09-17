@@ -51,21 +51,6 @@ class ReviewController extends Controller
     }
 
     /**
-     * Display a single review.
-     */
-    public function show(Review $review): Response
-    {
-        $review->load([
-            'user:id,name,email',
-            'reviewable',
-        ]);
-
-        return Inertia::render('Admin/Reviews/Show', [
-            'review' => $review,
-        ]);
-    }
-
-    /**
      * Approve a customer review.
      */
     public function approve(Review $review): RedirectResponse

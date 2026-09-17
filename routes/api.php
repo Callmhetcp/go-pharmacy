@@ -11,22 +11,19 @@ use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\ReviewController;
 use App\Http\Controllers\Api\V1\WishlistController;
-
-use App\Http\Controllers\Api\V1\Admin\DashboardController as AdminDashboardController;
-use App\Http\Controllers\Api\V1\Admin\ProductController as AdminProductController;
-use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\V1\Admin\AiConversationController as AdminAiConversationController;
+use App\Http\Controllers\Api\V1\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Api\V1\Admin\CustomerController as AdminCustomerController;
+use App\Http\Controllers\Api\V1\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Api\V1\Admin\InventoryController as AdminInventoryController;
 use App\Http\Controllers\Api\V1\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Api\V1\Admin\PaymentController as AdminPaymentController;
-use App\Http\Controllers\Api\V1\Admin\CustomerController as AdminCustomerController;
 use App\Http\Controllers\Api\V1\Admin\PrescriptionController as AdminPrescriptionController;
-use App\Http\Controllers\Api\V1\Admin\InventoryController as AdminInventoryController;
+use App\Http\Controllers\Api\V1\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\Api\V1\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Api\V1\Admin\ReviewController as AdminReviewController;
 use App\Http\Controllers\Api\V1\Admin\SettingsController as AdminSettingsController;
-use App\Http\Controllers\Api\V1\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Api\V1\AiController;
-
-
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
 
@@ -49,9 +46,13 @@ Route::prefix('v1')->group(function () {
     |--------------------------------------------------------------------------
     | AI Assistant
     |--------------------------------------------------------------------------
+    |
+    | The storefront uses Laravel web/session authentication.
+    |
     */
 
     Route::middleware('web')->group(function () {
+
         Route::get('/ai/conversation', [
             AiController::class,
             'conversation',
@@ -61,8 +62,32 @@ Route::prefix('v1')->group(function () {
             AiController::class,
             'chat',
         ]);
-    });
 
+        /*
+        |--------------------------------------------------------------------------
+        | Customer Product Reviews
+        |--------------------------------------------------------------------------
+        |
+        | Storefront customers are authenticated through the Laravel web session,
+        | not a Sanctum token.
+        |
+        */
+
+        Route::post('/products/{product}/reviews', [
+            ReviewController::class,
+            'store',
+        ]);
+
+        Route::patch('/products/{product}/reviews/{review}', [
+            ReviewController::class,
+            'update',
+        ]);
+
+        Route::delete('/products/{product}/reviews/{review}', [
+            ReviewController::class,
+            'destroy',
+        ]);
+    });
 
     /*
     |--------------------------------------------------------------------------
@@ -85,7 +110,6 @@ Route::prefix('v1')->group(function () {
         'google',
     ]);
 
-
     /*
     |--------------------------------------------------------------------------
     | Public Categories
@@ -102,7 +126,6 @@ Route::prefix('v1')->group(function () {
         'products',
     ]);
 
-
     /*
     |--------------------------------------------------------------------------
     | Public Products
@@ -113,7 +136,6 @@ Route::prefix('v1')->group(function () {
         ProductController::class,
         'index',
     ]);
-
 
     /*
     |--------------------------------------------------------------------------
@@ -128,7 +150,6 @@ Route::prefix('v1')->group(function () {
         ReviewController::class,
         'index',
     ]);
-
 
     /*
     |--------------------------------------------------------------------------
@@ -149,21 +170,16 @@ Route::prefix('v1')->group(function () {
         'show',
     ]);
 
-
     /*
     |--------------------------------------------------------------------------
     | Guest Order Lookup
     |--------------------------------------------------------------------------
-    |
-    | Guests can retrieve an order using the order lookup endpoint.
-    |
     */
 
     Route::get('/orders/lookup', [
         OrderController::class,
         'lookup',
     ]);
-
 
     /*
     |--------------------------------------------------------------------------
@@ -184,14 +200,10 @@ Route::prefix('v1')->group(function () {
         'payments',
     ]);
 
-
     /*
     |--------------------------------------------------------------------------
     | Session-Based Cart & Checkout
     |--------------------------------------------------------------------------
-    |
-    | The current Go Pharmacy cart is session-backed.
-    |
     */
 
     Route::middleware(StartSession::class)->group(function () {
@@ -227,7 +239,6 @@ Route::prefix('v1')->group(function () {
             'clear',
         ]);
 
-
         /*
         |--------------------------------------------------------------------------
         | Checkout
@@ -240,11 +251,13 @@ Route::prefix('v1')->group(function () {
         ]);
     });
 
-
     /*
     |--------------------------------------------------------------------------
     | Authenticated Customer API
     |--------------------------------------------------------------------------
+    |
+    | These endpoints are intended for Sanctum-authenticated API clients.
+    |
     */
 
     Route::middleware('auth:sanctum')->group(function () {
@@ -264,7 +277,6 @@ Route::prefix('v1')->group(function () {
             AuthController::class,
             'logout',
         ]);
-
 
         /*
         |--------------------------------------------------------------------------
@@ -287,7 +299,6 @@ Route::prefix('v1')->group(function () {
             'updatePassword',
         ]);
 
-
         /*
         |--------------------------------------------------------------------------
         | Customer Orders
@@ -308,7 +319,6 @@ Route::prefix('v1')->group(function () {
             OrderController::class,
             'cancel',
         ])->name('orders.cancel');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -346,7 +356,6 @@ Route::prefix('v1')->group(function () {
             'setDefault',
         ]);
 
-
         /*
         |--------------------------------------------------------------------------
         | Wishlist
@@ -372,7 +381,6 @@ Route::prefix('v1')->group(function () {
             WishlistController::class,
             'clear',
         ]);
-
 
         /*
         |--------------------------------------------------------------------------
@@ -404,39 +412,7 @@ Route::prefix('v1')->group(function () {
             PrescriptionController::class,
             'destroy',
         ]);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Product Reviews - Authenticated Actions
-        |--------------------------------------------------------------------------
-        |
-        | Viewing reviews is public.
-        | Creating, updating and deleting reviews requires authentication.
-        |
-        */
-
-        Route::post('/products/{product}/reviews', [
-            ReviewController::class,
-            'store',
-        ]);
-
-        Route::get('/products/{product}/reviews/{review}', [
-            ReviewController::class,
-            'show',
-        ]);
-
-        Route::patch('/products/{product}/reviews/{review}', [
-            ReviewController::class,
-            'update',
-        ]);
-
-        Route::delete('/products/{product}/reviews/{review}', [
-            ReviewController::class,
-            'destroy',
-        ]);
     });
-
 
     /*
     |--------------------------------------------------------------------------
@@ -465,7 +441,6 @@ Route::prefix('v1')->group(function () {
                 AdminDashboardController::class,
                 'index',
             ])->name('dashboard');
-
 
             /*
             |--------------------------------------------------------------------------
@@ -498,7 +473,6 @@ Route::prefix('v1')->group(function () {
                 'destroy',
             ])->name('products.destroy');
 
-        
             /*
             |--------------------------------------------------------------------------
             | Categories
@@ -577,7 +551,6 @@ Route::prefix('v1')->group(function () {
                 'markAsFailed',
             ])->name('payments.failed');
 
-        
             /*
             |--------------------------------------------------------------------------
             | Customers
@@ -620,7 +593,6 @@ Route::prefix('v1')->group(function () {
                 'createOrder',
             ])->name('prescriptions.order');
 
-            
             /*
             |--------------------------------------------------------------------------
             | Inventory
@@ -642,7 +614,6 @@ Route::prefix('v1')->group(function () {
                 'show',
             ])->name('inventory.show');
 
-            
             /*
             |--------------------------------------------------------------------------
             | Reviews
@@ -674,7 +645,6 @@ Route::prefix('v1')->group(function () {
                 'destroy',
             ])->name('reviews.destroy');
 
-            
             /*
             |--------------------------------------------------------------------------
             | Settings
@@ -691,8 +661,6 @@ Route::prefix('v1')->group(function () {
                 'update',
             ])->name('settings.update');
 
-
-        
             /*
             |--------------------------------------------------------------------------
             | Reports
@@ -724,12 +692,5 @@ Route::prefix('v1')->group(function () {
                 AdminAiConversationController::class,
                 'storeMessage',
             ])->name('ai.conversations.messages.store');
-
-
-
-
-
-
-
         });
 });

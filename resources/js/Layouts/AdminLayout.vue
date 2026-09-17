@@ -96,6 +96,11 @@ const navigation = [
         href: '/admin/orders',
         icon: 'orders',
     },
+    {   
+        label: 'Reviews', 
+        href: '/admin/reviews', 
+        icon: 'reviews' 
+    },
     {
         label: 'Prescriptions',
         href: '/admin/prescriptions',
@@ -442,6 +447,21 @@ const logout = () => {
                                     stroke-linejoin="round"
                                     stroke-width="1.8"
                                     d="M7 4h10a2 2 0 0 1 2 2v14H5V6a2 2 0 0 1 2-2Zm2 0V2h6v2m-5 5h6m-6 4h6m-6 4h4"
+                                />
+                            </svg>
+
+                            <svg
+                                v-else-if="item.icon === 'reviews'"
+                                class="h-5 w-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="1.8"
+                                    d="m12 3 2.78 5.63 6.22.9-4.5 4.38 1.06 6.2L12 17.18l-5.56 2.93 1.06-6.2L3 9.53l6.22-.9L12 3Z"
                                 />
                             </svg>
 
