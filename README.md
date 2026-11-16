@@ -703,9 +703,13 @@ Suggestions, improvements, and constructive feedback are welcome.
 
 ## 📄 License
 
-This project is proprietary software.
 
-The source code is published for portfolio and demonstration purposes. Unauthorized commercial use, redistribution, or modification is not permitted without permission from the project owner.
+## License
+
+Copyright (c) 2026 Ojo Obinna Wisdom. All rights reserved.
+
+This project is proprietary software. No part of this project may be copied, reproduced, modified, distributed, or used commercially without prior written permission from the copyright owner.
+
 
 ---
 
