@@ -463,7 +463,7 @@ POST   /api/v1/admin/ai/conversations/{conversation}/messages
 Clone the repository:
 
 ```bash
-git clone https://github.com/Callmhetcp4/go-pharmacy.git
+git clone https://github.com/Callmhetcp/go-pharmacy.git
 ```
 
 Move into the project directory:
